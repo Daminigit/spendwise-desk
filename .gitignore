@@ -1,0 +1,33 @@
+# ── Node / build ──────────────────────────────────────────────
+node_modules/
+dist/
+
+# ── Environment ────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Uploads (local dev) ────────────────────────────────────────
+uploads/
+
+# ── OS / editor ────────────────────────────────────────────────
+.DS_Store
+*.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── Test / coverage ───────────────────────────────────────────
+coverage/
+
+
+# ── Sample bills for local demos (not committed: they use real business names) ──
+demo-receipts/
+
+# Submission documents (contain the demo connector URL)
+submission/
