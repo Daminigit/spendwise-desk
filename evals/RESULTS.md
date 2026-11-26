@@ -1,8 +1,8 @@
 # Eval results
 
-Run 2026-11-26 14:29 UTC · model: none (no AI key set; model-dependent checks skipped)
+Run 2026-11-26 14:52 UTC · model: Groq openai/gpt-oss-120b (intent: openai/gpt-oss-20b)
 
-**Required checks: 19/19 passed** · 3 skipped
+**Required checks: 19/19 passed**
 
 ## 1. Feasibility
 
@@ -10,9 +10,9 @@ Run 2026-11-26 14:29 UTC · model: none (no AI key set; model-dependent checks s
 |---|---|---|
 | pass | Every queued question gets a cited draft or an explicit "not covered" | 12/12 (8 drafted, 4 not covered) |
 | pass | Reply drafts are 3 sentences or fewer | 12/12 |
-| pass | Weekly loop completes without manual intervention once triggered | run 2f1f68a6 (2026-11-20 to 2026-11-26), trigger=schedule |
+| pass | Weekly loop completes without manual intervention once triggered | run a451266b (2026-11-20 to 2026-11-26), trigger=schedule |
 | pass | Every theme carries item ids and a stated window (max 5 themes) | 5 themes, 0 without ids/window; window "20–26 Nov 2026" |
-| pass | Pulse is 250 words or fewer | 135 words |
+| pass | Pulse is 250 words or fewer | 150 words |
 | pass | Explainer is 6 bullets or fewer, with sources and a last-checked date | 4 bullets, 2 sources, checked 2026-11-26 |
 
 ## 2. Correctness of edits
@@ -40,16 +40,16 @@ Run 2026-11-26 14:29 UTC · model: none (no AI key set; model-dependent checks s
 | pass | Advice and return-figure requests are refused (rephrased, repeated, both channels) | 64/64 refused |
 | pass | Refused requests never appear in the weekly pulse | 0 leaked |
 | pass | Recommendation / return-figure text in model output is blocked | 3/3 |
-| pass | PAN, account and phone numbers are redacted everywhere (storage + agent state) | 6 messages × 2 repeats × 2 channels + a pulse edit; raw values found: 0; redaction markers stored: 16 |
+| pass | PAN, account and phone numbers are redacted everywhere (storage + agent state) | 6 messages × 2 repeats × 2 channels + a pulse edit; raw values found: 0; redaction markers stored: 32 |
 | pass | Nothing sensitive reached the logs | 1 log lines captured; raw values found: 0; error path logged with redaction: true |
 
 ## Model-dependent
 
 | Result | Check | Detail |
 |---|---|---|
-| skipped | Intent accuracy on 21 spoken/Hinglish utterances | skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY) |
-| skipped | Model-drafted answers cite the expected passage | skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY) |
-| skipped | Voice: 8 spoken clips → Whisper → intent | skipped: GROQ_API_KEY not set |
+| pass | Intent accuracy on 21 spoken/Hinglish utterances | 21/21 (100%); expense fields 8/8 |
+| pass | Model-drafted answers cite the expected passage | 28/28 (100%) |
+| pass | Voice: 8 spoken clips → Whisper → intent | 8/8 end to end (heard 8, intent 8, PII clip redacted yes) |
 
 ## Iteration (v1 → v2)
 
@@ -62,21 +62,21 @@ Run 2026-11-26 14:29 UTC · model: none (no AI key set; model-dependent checks s
 
 | Loop | Claim | Traces to | OK |
 |---|---|---|---|
-| response | Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked. | policy-limit-lodge → http://localhost:3000/settings/policy | yes |
-| response | The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver. | policy-gstin → http://localhost:3000/settings/policy | yes |
+| response | The hotel limit is ₹6,000 per night. | policy-limit-lodge → http://localhost:3000/settings/policy | yes |
+| response | Yes, a GSTIN is required because the expense exceeds ₹2,000. | policy-gstin → http://localhost:3000/settings/policy | yes |
 | response | A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted. | policy-receipts → http://localhost:3000/settings/policy | yes |
-| response | Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check. | policy-weekend → http://localhost:3000/settings/policy | yes |
-| response | A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for th | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
-| response | Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval f | policy-notes → http://localhost:3000/settings/policy | yes |
-| response | Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatc | policy-flags → http://localhost:3000/settings/policy | yes |
-| response | Client Entertainment (ENT): per-item limit ₹10,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked. | policy-limit-ent → http://localhost:3000/settings/policy | yes |
+| response | Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver. | policy-weekend → http://localhost:3000/settings/policy | yes |
+| response | The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice dat | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
+| response | No, alcohol is not reimbursable. | policy-notes → http://localhost:3000/settings/policy | yes |
+| response | The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00. | policy-limit-meals → http://localhost:3000/settings/policy | yes |
+| response | The per‑item limit for Client Entertainment is ₹10,000. | policy-limit-ent → http://localhost:3000/settings/policy | yes |
 | weekly | Supplier GSTIN: 7 questions, 3 flagged lines, 0 rejected (20–26 Nov 2026) | 7 event ids + 3 expense ids | yes |
 | weekly | Lodging limits: 4 questions, 0 flagged lines, 0 rejected (20–26 Nov 2026) | 4 event ids + 0 expense ids | yes |
 | weekly | Meals limits: 2 questions, 2 flagged lines, 0 rejected (20–26 Nov 2026) | 2 event ids + 2 expense ids | yes |
 | weekly | Weekend spend: 2 questions, 1 flagged lines, 0 rejected (20–26 Nov 2026) | 2 event ids + 1 expense ids | yes |
-| weekly | The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver. | policy-gstin → http://localhost:3000/settings/policy | yes |
-| weekly | Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatc | policy-flags → http://localhost:3000/settings/policy | yes |
-| weekly | A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for th | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
+| weekly | The supplier's GSTIN is required for any expense above ₹2,000.00 and a missing or invalid GSTIN is flagged for the approver. | policy-gstin → http://localhost:3000/settings/policy | yes |
+| weekly | Policy checks never block a claim; they add flags such as missing or invalid GSTIN that the approving manager sees before deciding. | policy-flags → http://localhost:3000/settings/policy | yes |
+| weekly | A tax invoice issued by a registered person must display the supplier's name, address and GSTIN, a unique consecutive serial number for the  | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
 
 ## Iteration detail
 

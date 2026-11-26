@@ -5,7 +5,7 @@ A support and policy desk for expense claims at small Indian companies. Employee
 Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1 (expense claims run from Claude over MCP).
 
 - **Prototype:** _add the Render URL here after deploying (see [Deploy](#deploy))_
-- **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 19/19 required checks pass
+- **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 19/19 required checks pass against the live model (Groq gpt-oss + Whisper)
 - **Demo logins** (password `demo1234`): `riya@acme.test` (employee), `manager@acme.test` (manager), `admin@acme.test` (admin / finance)
 
 ---
@@ -185,7 +185,7 @@ This runs over the assembled system (database, both loops, the HTTP server and a
 | **1. Feasibility** | 12 queued questions → each gets a cited draft or an explicit "not covered" (≤3 sentences); the loop runs from the scheduler path with no human step; themes ≤5, each with ids and a window; pulse ≤250 words; explainer ≤6 bullets with sources | 6/6 |
 | **2. Correctness of edits** | Diffs database state before and after: an edit changes only that draft; approving one action writes only that action; rejecting touches nothing else; confirming one reply draft writes one line; no double approval or replay | 6/6 |
 | **3. Grounding and compliance** | 15 claims sampled from both loops trace to a source passage (every ₹ amount must appear in it) or to existing ids; uncovered questions say so (web + MCP); 16 advice and return-figure requests × 2 repeats × 2 channels are refused and never reach the pulse; PAN / account / phone in 6 phrasings × 2 repeats × 2 channels plus a pulse edit and an error path, then every table and every captured log line is searched for the raw values | 7/7 |
-| Model-dependent | Intent accuracy on 21 spoken and Hinglish utterances; whether the model's answers cite the expected passage; 8 audio clips → Whisper → intent (including a spoken PAN that must be redacted) | run with a key |
+| Model-dependent (Groq) | Intent accuracy on 21 spoken and Hinglish utterances (and the expense fields); whether the model's answers cite the expected passage; 8 audio clips → Whisper → intent, including a spoken PAN that must be redacted | 21/21 intent, 8/8 fields · 28/28 cited · 8/8 voice end to end |
 
 **Iteration** (same labelled data, earlier versions kept in [`evals/legacy/`](evals/legacy)):
 
@@ -194,6 +194,8 @@ This runs over the assembled system (database, both loops, the HTTP server and a
 | Retrieval top-1 on 28 covered questions | 68% (plain IDF) | **100%** (heading boost ×2, synonyms ×0.5, length normalisation) | — |
 | Advice guard: requests caught (of 16) | 13 | 14 (adds any investment-product mention) | **16** (adds "park / grow money", "good returns") |
 | Advice guard: ordinary messages wrongly refused (of 15) | 0 | 1 (*"printer paper **stock**"*) | **0** |
+
+The first live run against Groq found three more problems, each now fixed in code. Whisper wrote Hinglish in Devanagari, so the transcription is now forced to Latin script with a romanised prompt. Whisper wrote a spoken PAN letter by letter (*"A, B, C, D, E, 1, 2, 3, 4, F"*) and redaction missed it, so spelled-out identifiers are now collapsed and redacted. And nothing stopped the model from stating a number its source didn't contain, so every number in an answer or explainer bullet must now appear in the cited passage or the user's question ([`src/corpus/grounding.ts`](src/corpus/grounding.ts)).
 
 Each version change came from a failure the system showed on real input. A real run sent hotel and GSTIN questions to catch-all passages (→ retrieval v2). The demo data contained *"Should I put my reimbursement into a mutual fund?"* and the guard missed it (→ v2). The eval then found two more misses and a false refusal (→ v3). The routing questions overlap the ones used for tuning, so 100% overstates what retrieval will do on new phrasings.
 

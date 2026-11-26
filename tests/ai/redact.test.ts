@@ -14,6 +14,12 @@ describe('redact', () => {
     ['account number', 'a/c 50100123456781 hdfc', 'a/c [ACCOUNT] hdfc'],
     ['email', 'mail riya.k@acme.co.in', 'mail [EMAIL]'],
     ['UPI id', 'paid to riya@okhdfcbank', 'paid to [UPI]'],
+    [
+      'PAN spelled out (speech-to-text)',
+      'My pan is A, B, C, D, E, 1, 2, 3, 4, F. What is the limit?',
+      'My pan is [PAN]. What is the limit?',
+    ],
+    ['phone read digit by digit', 'call 9 8 7 6 5 4 3 2 1 0 please', 'call [PHONE] please'],
     ['connector token', 'url /mcp/sw_abcdefghij1234567890', 'url /mcp/[TOKEN]'],
   ])('redacts %s', (_label, input, expected) => {
     expect(redactText(input)).toBe(expected);
@@ -22,6 +28,11 @@ describe('redact', () => {
   it('reports each kind found once, in order', () => {
     const r = redact('PAN ABCDE1234F, phone 9876543210, other PAN PQRSX6789Z');
     expect(r.found).toEqual(['PAN', 'PHONE']);
+  });
+
+  it('leaves ordinary short words and initials alone', () => {
+    const text = 'Book a cab for A and B at 5 pm, row 3, seat 4';
+    expect(redactText(text)).toBe(text);
   });
 
   it('keeps GSTINs, amounts, dates and claim details intact', () => {

@@ -44,12 +44,30 @@ const RULES: {
   { kind: 'ACCOUNT', re: /\b\d{9,18}\b/g },
 ];
 
+/** 8+ single letters or digits separated by spaces, commas, dots or hyphens. */
+const SPELLED_RUN = /\b(?:[A-Za-z0-9][\s,.-]+){7,}[A-Za-z0-9]\b/g;
+
 export function redact(input: string): RedactionResult {
   const found: PiiKind[] = [];
 
   // Shield GSTINs behind placeholders that no rule can match, then restore them.
   const gstins: string[] = [];
   let text = input.replace(GSTIN_RE, (m) => `\u27e6${gstins.push(m) - 1}\u27e7`);
+
+  // Identifiers read out one character at a time ("A, B, C, D, E, 1, 2, 3, 4, F",
+  // as speech-to-text writes a spelled PAN): collapse the run and redact it if
+  // the collapsed form is an identifier.
+  text = text.replace(SPELLED_RUN, (m) => {
+    const collapsed = m.replace(/[\s,.-]+/g, '');
+    for (const { kind, re, accept } of RULES) {
+      const full = new RegExp(`^(?:${re.source})$`, re.flags.replace('g', ''));
+      if (full.test(collapsed) && (!accept || accept(collapsed))) {
+        if (!found.includes(kind)) found.push(kind);
+        return `[${kind}]`;
+      }
+    }
+    return m;
+  });
 
   for (const { kind, re, accept } of RULES) {
     text = text.replace(re, (m) => {

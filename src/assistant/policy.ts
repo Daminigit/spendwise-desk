@@ -16,6 +16,7 @@
 import { askJson, AiUnavailableError } from '../ai/model.js';
 import { loadCorpus, type Passage } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';
+import { ungroundedNumbers } from '../corpus/grounding.js';
 import { violatesScope } from './guard.js';
 import { findCanonical, markReused } from '../pulse/canonical.js';
 import type { Actor } from './interpret.js';
@@ -158,6 +159,8 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
   const cited = [...new Set(ids)].map((id) => byId.get(String(id))).filter((p): p is Passage => Boolean(p));
   const answer = capSentences(String(model?.answer ?? '').trim(), 3);
   if (model?.covered !== true || !answer || cited.length === 0 || violatesScope(answer)) return notCovered();
+  // Every number in the answer must come from a cited passage or the question itself.
+  if (ungroundedNumbers(answer, [...cited.map((p) => p.text), question]).length) return notCovered();
 
   return {
     reply: answer,

@@ -301,9 +301,15 @@ export async function transcribe(audio: Buffer, filename: string): Promise<strin
       model: process.env.WHISPER_MODEL || DEFAULT_WHISPER_MODEL,
       file: await toFile(audio, filename),
       // Vocabulary hint: spellings Whisper should prefer in this domain.
+      // Whisper copies the prompt's style: a romanised Hinglish sample keeps
+      // Hindi words in Latin script ("aaj lunch ka bill").
       prompt:
-        'Expense claim. Uber, Ola, GSTIN, rupees, lunch, dinner, hotel, lodging, receipt, invoice, Bangalore, Mumbai.',
+        'Expense claim. Aaj lunch ka bill 500 rupees hai, add kar do. Kal Uber se airport gaya. ' +
+        'GSTIN, receipt, invoice, hotel, lodging, Ola, Bangalore, Mumbai.',
       temperature: 0,
+      // Hinglish otherwise comes back in Devanagari; English keeps it in Latin
+      // script, which the search, the redaction and the text box all expect.
+      language: process.env.WHISPER_LANGUAGE || 'en',
     });
     return String((r as { text?: string }).text ?? '').trim();
   } catch (err) {

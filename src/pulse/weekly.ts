@@ -26,6 +26,7 @@ import { askJson, AiUnavailableError } from '../ai/model.js';
 import { redactText } from '../ai/redact.js';
 import { loadCorpus, todayIso, type Passage } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';
+import { ungroundedNumbers } from '../corpus/grounding.js';
 import { getOrganisation } from '../domain/org.js';
 import { FLAG_LABELS } from '../web/util.js';
 import { violatesScope } from '../assistant/guard.js';
@@ -468,7 +469,13 @@ export async function composeExplainer(orgId: string, g: Gathered, passages: Pas
     });
     if (!res.refused) {
       bullets = res.value.bullets
-        .filter((b) => byId.has(b.passage_id) && b.text.trim() && !violatesScope(b.text))
+        .filter(
+          (b) =>
+            byId.has(b.passage_id) &&
+            b.text.trim() &&
+            !violatesScope(b.text) &&
+            ungroundedNumbers(b.text, [byId.get(b.passage_id)!.text]).length === 0,
+        )
         .map((b) => ({ text: clipWords(b.text.trim(), 40), passageId: b.passage_id }));
       if (res.value.title.trim()) title = clipWords(res.value.title.trim(), 10);
       aiWritten = bullets.length > 0;

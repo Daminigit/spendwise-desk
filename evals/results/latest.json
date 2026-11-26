@@ -1,11 +1,11 @@
 {
-  "ranAt": "2026-11-26T14:29:15.626Z",
-  "model": null,
+  "ranAt": "2026-11-26T14:52:59.218Z",
+  "model": "Groq openai/gpt-oss-120b (intent: openai/gpt-oss-20b)",
   "summary": {
     "required": 19,
     "passed": 19,
     "failed": 0,
-    "skipped": 3
+    "skipped": 0
   },
   "checks": [
     {
@@ -16,9 +16,9 @@
       "data": [
         {
           "q": "What is the hotel limit per night?",
-          "reply": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked.",
+          "reply": "The hotel limit is ₹6,000 per night.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Lodging limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -26,7 +26,7 @@
             "terms: hotel, limit, night, lodging"
           ],
           "answer": {
-            "reply": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked.",
+            "reply": "The hotel limit is ₹6,000 per night.",
             "covered": true,
             "sources": [
               {
@@ -34,6 +34,12 @@
                 "url": "http://localhost:3000/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-limit-lodge"
+              },
+              {
+                "title": "Acme Travel Pvt Ltd expense policy: Policy notes",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "passageId": "policy-notes"
               }
             ],
             "searched": [
@@ -43,14 +49,14 @@
             ],
             "topic": "policy-limit-lodge",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
           "q": "Do I need a GSTIN on a ₹2,500 bill?",
-          "reply": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver.",
+          "reply": "Yes, a GSTIN is required because the expense exceeds ₹2,000.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Supplier GSTIN (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -58,7 +64,7 @@
             "terms: gstin, ₹2, 500, bill, receipt, invoice"
           ],
           "answer": {
-            "reply": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver.",
+            "reply": "Yes, a GSTIN is required because the expense exceeds ₹2,000.",
             "covered": true,
             "sources": [
               {
@@ -75,14 +81,14 @@
             ],
             "topic": "policy-gstin",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
           "q": "When do I need to attach a receipt?",
           "reply": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Receipts (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -107,14 +113,14 @@
             ],
             "topic": "policy-receipts",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
           "q": "Can I claim a cab on Sunday?",
-          "reply": "Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check.",
+          "reply": "Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Weekend spend (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -122,7 +128,7 @@
             "terms: cab, sunday, travel, weekend"
           ],
           "answer": {
-            "reply": "Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check.",
+            "reply": "Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver.",
             "covered": true,
             "sources": [
               {
@@ -139,14 +145,14 @@
             ],
             "topic": "policy-weekend",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
           "q": "What must a GST tax invoice show about the supplier?",
-          "reply": "A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for the financial year (letters, numerals, hyphen or slash), and the date the invoice was issued.",
+          "reply": "The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "CGST Invoice Rules: Tax invoice: Supplier details, serial number and date (https://cbic-gst.gov.in/gst-invoice-rules.html, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -154,7 +160,7 @@
             "terms: gst, tax, invoice, show, supplier, gstin"
           ],
           "answer": {
-            "reply": "A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for the financial year (letters, numerals, hyphen or slash), and the date the invoice was issued.",
+            "reply": "The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
             "covered": true,
             "sources": [
               {
@@ -171,14 +177,14 @@
             ],
             "topic": "cbic-invoice-supplier",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
           "q": "Is alcohol reimbursable?",
-          "reply": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email.",
+          "reply": "No, alcohol is not reimbursable.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Policy notes (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -186,7 +192,7 @@
             "terms: alcohol, reimbursable"
           ],
           "answer": {
-            "reply": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email.",
+            "reply": "No, alcohol is not reimbursable.",
             "covered": true,
             "sources": [
               {
@@ -203,7 +209,7 @@
             ],
             "topic": "policy-notes",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
@@ -233,38 +239,6 @@
         },
         {
           "q": "Can I claim GST input credit on hotel food?",
-          "reply": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding.",
-          "covered": true,
-          "drafter": "extractive",
-          "source": "Acme Travel Pvt Ltd expense policy: How policy checks work (http://localhost:3000/settings/policy, checked 2026-11-26)",
-          "searched": [
-            "Acme Travel Pvt Ltd expense policy",
-            "CGST Invoice Rules: Tax invoice",
-            "terms: gst, input, credit, hotel, food, gstin, tax, lodging, meal"
-          ],
-          "answer": {
-            "reply": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding.",
-            "covered": true,
-            "sources": [
-              {
-                "title": "Acme Travel Pvt Ltd expense policy: How policy checks work",
-                "url": "http://localhost:3000/settings/policy",
-                "lastChecked": "2026-11-26",
-                "passageId": "policy-flags"
-              }
-            ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: gst, input, credit, hotel, food, gstin, tax, lodging, meal"
-            ],
-            "topic": "policy-flags",
-            "canonical": null,
-            "drafter": "extractive"
-          }
-        },
-        {
-          "q": "how much for dinner with the team",
           "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
           "covered": false,
           "drafter": "none",
@@ -272,7 +246,7 @@
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
-            "terms: dinner, team, meal"
+            "terms: gst, input, credit, hotel, food, gstin, tax, lodging, meal"
           ],
           "answer": {
             "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
@@ -281,11 +255,43 @@
             "searched": [
               "Acme Travel Pvt Ltd expense policy",
               "CGST Invoice Rules: Tax invoice",
+              "terms: gst, input, credit, hotel, food, gstin, tax, lodging, meal"
+            ],
+            "topic": "policy-flags",
+            "canonical": null,
+            "drafter": "none"
+          }
+        },
+        {
+          "q": "how much for dinner with the team",
+          "reply": "The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00.",
+          "covered": true,
+          "drafter": "model",
+          "source": "Acme Travel Pvt Ltd expense policy: Meals limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "searched": [
+            "Acme Travel Pvt Ltd expense policy",
+            "CGST Invoice Rules: Tax invoice",
+            "terms: dinner, team, meal"
+          ],
+          "answer": {
+            "reply": "The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00.",
+            "covered": true,
+            "sources": [
+              {
+                "title": "Acme Travel Pvt Ltd expense policy: Meals limits",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "passageId": "policy-limit-meals"
+              }
+            ],
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
               "terms: dinner, team, meal"
             ],
             "topic": "policy-limit-meals",
             "canonical": null,
-            "drafter": "none"
+            "drafter": "model"
           }
         },
         {
@@ -315,9 +321,9 @@
         },
         {
           "q": "what is the client entertainment limit",
-          "reply": "Client Entertainment (ENT): per-item limit ₹10,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked.",
+          "reply": "The per‑item limit for Client Entertainment is ₹10,000.",
           "covered": true,
-          "drafter": "extractive",
+          "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Client Entertainment limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
@@ -325,7 +331,7 @@
             "terms: client, entertainment, limit"
           ],
           "answer": {
-            "reply": "Client Entertainment (ENT): per-item limit ₹10,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked.",
+            "reply": "The per‑item limit for Client Entertainment is ₹10,000.",
             "covered": true,
             "sources": [
               {
@@ -342,7 +348,7 @@
             ],
             "topic": "policy-limit-ent",
             "canonical": null,
-            "drafter": "extractive"
+            "drafter": "model"
           }
         },
         {
@@ -384,7 +390,7 @@
       "group": "feasibility",
       "name": "Weekly loop completes without manual intervention once triggered",
       "pass": true,
-      "detail": "run 2f1f68a6 (2026-11-20 to 2026-11-26), trigger=schedule",
+      "detail": "run a451266b (2026-11-20 to 2026-11-26), trigger=schedule",
       "required": true
     },
     {
@@ -426,7 +432,7 @@
           "window": "20–26 Nov 2026"
         },
         {
-          "label": "How policy checks work",
+          "label": "Receipts",
           "questions": 1,
           "flags": 0,
           "rejections": 0,
@@ -440,7 +446,7 @@
       "group": "feasibility",
       "name": "Pulse is 250 words or fewer",
       "pass": true,
-      "detail": "135 words",
+      "detail": "150 words",
       "required": true
     },
     {
@@ -500,14 +506,14 @@
       "data": [
         {
           "loop": "response",
-          "claim": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked.",
+          "claim": "The hotel limit is ₹6,000 per night.",
           "tracesTo": "policy-limit-lodge → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver.",
+          "claim": "Yes, a GSTIN is required because the expense exceeds ₹2,000.",
           "tracesTo": "policy-gstin → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
@@ -521,35 +527,35 @@
         },
         {
           "loop": "response",
-          "claim": "Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check.",
+          "claim": "Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver.",
           "tracesTo": "policy-weekend → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for the financial year (letters, numerals, hyphen or slash), and the date the invoice was issued.",
+          "claim": "The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
           "tracesTo": "cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email.",
+          "claim": "No, alcohol is not reimbursable.",
           "tracesTo": "policy-notes → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding.",
-          "tracesTo": "policy-flags → http://localhost:3000/settings/policy",
+          "claim": "The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00.",
+          "tracesTo": "policy-limit-meals → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Client Entertainment (ENT): per-item limit ₹10,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked.",
+          "claim": "The per‑item limit for Client Entertainment is ₹10,000.",
           "tracesTo": "policy-limit-ent → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
@@ -584,21 +590,21 @@
         },
         {
           "loop": "weekly",
-          "claim": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver.",
+          "claim": "The supplier's GSTIN is required for any expense above ₹2,000.00 and a missing or invalid GSTIN is flagged for the approver.",
           "tracesTo": "policy-gstin → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "weekly",
-          "claim": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding.",
+          "claim": "Policy checks never block a claim; they add flags such as missing or invalid GSTIN that the approving manager sees before deciding.",
           "tracesTo": "policy-flags → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "weekly",
-          "claim": "A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for the financial year (letters, numerals, hyphen or slash), and the date the invoice was issued.",
+          "claim": "A tax invoice issued by a registered person must display the supplier's name, address and GSTIN, a unique consecutive serial number for the financial year, and the invoice date.",
           "tracesTo": "cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html",
           "ok": true,
           "why": "source passage contains every amount"
@@ -667,7 +673,7 @@
       "group": "compliance",
       "name": "PAN, account and phone numbers are redacted everywhere (storage + agent state)",
       "pass": true,
-      "detail": "6 messages × 2 repeats × 2 channels + a pulse edit; raw values found: 0; redaction markers stored: 16",
+      "detail": "6 messages × 2 repeats × 2 channels + a pulse edit; raw values found: 0; redaction markers stored: 32",
       "data": [],
       "required": true
     },
@@ -682,22 +688,515 @@
     {
       "group": "ai",
       "name": "Intent accuracy on 21 spoken/Hinglish utterances",
-      "pass": null,
-      "detail": "skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY)",
+      "pass": true,
+      "detail": "21/21 (100%); expense fields 8/8",
+      "data": [
+        {
+          "text": "Add 450 rupees Uber to the airport yesterday",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "paanch sau ka lunch aaj",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "hotel 4800 Taj Hyderabad last Tuesday",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "log ₹1,200 for printer paper from Staples",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "I spent 2.5k on a client dinner",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "Ola cab 320",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "Zoom subscription 1300 this month",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "kal 650 ka auto",
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "What's the hotel limit?",
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "do I need GSTIN for a 3000 bill",
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "weekend pe cab allowed hai?",
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "when should I attach receipts",
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "what must an invoice show",
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "where is my Bangalore claim",
+          "expected": "claim_status",
+          "got": "claim_status",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "has my claim been approved",
+          "expected": "claim_status",
+          "got": "claim_status",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "mera claim kahan tak pahuncha",
+          "expected": "claim_status",
+          "got": "claim_status",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "what's waiting for my approval",
+          "expected": "claim_status",
+          "got": "claim_status",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "approve Riya's Bangalore claim",
+          "expected": "approve_claim",
+          "got": "approve_claim",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "reject Arjun's claim, it is over the limit",
+          "expected": "reject_claim",
+          "got": "reject_claim",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "hello",
+          "expected": "other",
+          "got": "other",
+          "intentOk": true,
+          "slotsOk": true
+        },
+        {
+          "text": "tell me a joke",
+          "expected": "other",
+          "got": "other",
+          "intentOk": true,
+          "slotsOk": true
+        }
+      ],
       "required": false
     },
     {
       "group": "ai",
       "name": "Model-drafted answers cite the expected passage",
-      "pass": null,
-      "detail": "skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY)",
+      "pass": true,
+      "detail": "28/28 (100%)",
+      "data": [
+        {
+          "q": "What is the hotel limit per night?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-notes",
+            "policy-limit-lodge"
+          ],
+          "ok": true
+        },
+        {
+          "q": "how much can I spend on a hotel stay",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-lodge",
+            "policy-notes"
+          ],
+          "ok": true
+        },
+        {
+          "q": "lodging limit kitna hai",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-lodge"
+          ],
+          "ok": true
+        },
+        {
+          "q": "Is there a cap on hotel rooms?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-lodge",
+            "policy-notes"
+          ],
+          "ok": true
+        },
+        {
+          "q": "What is the daily meals limit?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-meals"
+          ],
+          "ok": true
+        },
+        {
+          "q": "how much for dinner with the team",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-meals"
+          ],
+          "ok": true
+        },
+        {
+          "q": "lunch ka limit kya hai",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-meals"
+          ],
+          "ok": true
+        },
+        {
+          "q": "Do I need the GSTIN on a hotel bill?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-gstin"
+          ],
+          "ok": true
+        },
+        {
+          "q": "Which bills need a GSTIN?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-gstin",
+            "cbic-invoice-recipient"
+          ],
+          "ok": true
+        },
+        {
+          "q": "GSTIN required above what amount?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-gstin"
+          ],
+          "ok": true
+        },
+        {
+          "q": "hotel ne GSTIN nahi diya, kya chalega?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-gstin"
+          ],
+          "ok": true
+        },
+        {
+          "q": "my cab bill has no GSTIN, is that a problem",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-gstin"
+          ],
+          "ok": true
+        },
+        {
+          "q": "When do I need to attach a receipt?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-receipts"
+          ],
+          "ok": true
+        },
+        {
+          "q": "do I need a bill for 300 rupees",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-receipts"
+          ],
+          "ok": true
+        },
+        {
+          "q": "Can I claim a cab on Sunday?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-weekend",
+            "policy-limit-travel"
+          ],
+          "ok": true
+        },
+        {
+          "q": "are weekend expenses allowed",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-weekend"
+          ],
+          "ok": true
+        },
+        {
+          "q": "is a Saturday flight ok",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-weekend",
+            "policy-limit-travel"
+          ],
+          "ok": true
+        },
+        {
+          "q": "What must a GST tax invoice show?",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "cbic-invoice-recipient",
+            "cbic-invoice-supplier"
+          ],
+          "ok": true
+        },
+        {
+          "q": "what supplier details should the invoice have",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "cbic-invoice-supplier"
+          ],
+          "ok": true
+        },
+        {
+          "q": "does the invoice need the recipient GSTIN",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "cbic-invoice-recipient"
+          ],
+          "ok": true
+        },
+        {
+          "q": "is place of supply needed on an inter-state invoice",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "cbic-invoice-place-signature"
+          ],
+          "ok": true
+        },
+        {
+          "q": "what is the client entertainment limit",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-ent",
+            "policy-notes"
+          ],
+          "ok": true
+        },
+        {
+          "q": "software subscription limit",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-sw"
+          ],
+          "ok": true
+        },
+        {
+          "q": "taxi limit",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-travel"
+          ],
+          "ok": true
+        },
+        {
+          "q": "what categories can I use",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-categories"
+          ],
+          "ok": true
+        },
+        {
+          "q": "will my claim be blocked if it is over the limit",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-limit-other"
+          ],
+          "ok": true
+        },
+        {
+          "q": "is alcohol reimbursable",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-notes"
+          ],
+          "ok": true
+        },
+        {
+          "q": "how many days do I have to submit",
+          "covered": true,
+          "drafter": "model",
+          "cited": [
+            "policy-notes"
+          ],
+          "ok": true
+        }
+      ],
       "required": false
     },
     {
       "group": "ai",
       "name": "Voice: 8 spoken clips → Whisper → intent",
-      "pass": null,
-      "detail": "skipped: GROQ_API_KEY not set",
+      "pass": true,
+      "detail": "8/8 end to end (heard 8, intent 8, PII clip redacted yes)",
+      "data": [
+        {
+          "file": "uber-450.m4a",
+          "heard": "Add 450 rupees Uber to the airport yesterday.",
+          "heardOk": true,
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        },
+        {
+          "file": "hotel-limit.m4a",
+          "heard": "What is the hotel limit per night?",
+          "heardOk": true,
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        },
+        {
+          "file": "lunch-hinglish.m4a",
+          "heard": "Aaj team lunch ka bill 1200 rupees hai, add kar do.",
+          "heardOk": true,
+          "expected": "log_expense",
+          "got": "log_expense",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        },
+        {
+          "file": "gstin-question.m4a",
+          "heard": "Do I need the GSTIN on a hotel bill above 2000 rupees?",
+          "heardOk": true,
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        },
+        {
+          "file": "claim-status.m4a",
+          "heard": "Where is my Bangalore claim?",
+          "heardOk": true,
+          "expected": "claim_status",
+          "got": "claim_status",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        },
+        {
+          "file": "advice.m4a",
+          "heard": "Should I invest my reimbursement in a mutual fund?",
+          "heardOk": true,
+          "expected": "advice_request",
+          "got": "advice_request",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        },
+        {
+          "file": "pan-number.m4a",
+          "heard": "My pan is [PAN]. What is the meals limit?",
+          "heardOk": true,
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": true
+        },
+        {
+          "file": "weekend-cab.m4a",
+          "heard": "Can I claim a cab I took on Sunday?",
+          "heardOk": true,
+          "expected": "policy_question",
+          "got": "policy_question",
+          "intentOk": true,
+          "amountOk": true,
+          "piiRedacted": null
+        }
+      ],
       "required": false
     },
     {
