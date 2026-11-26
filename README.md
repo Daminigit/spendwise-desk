@@ -4,7 +4,7 @@ A support and policy desk for expense claims at small Indian companies. Employee
 
 Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1 (expense claims run from Claude over MCP).
 
-- **Prototype:** _add the Render URL here after deploying (see [Deploy](#deploy))_
+- **Prototype:** https://spendwise-desk.onrender.com (free plan: the first visit after a quiet spell takes a minute or two to wake up)
 - **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 25/25 required checks pass against the live model (Groq gpt-oss + Whisper)
 - **Demo logins** (password `demo1234`): `riya@acme.test` (employee), `manager@acme.test` (manager), `admin@acme.test` (admin / finance)
 
