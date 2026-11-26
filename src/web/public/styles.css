@@ -261,3 +261,6 @@ h1 .badge { font-size: 0.8rem; }
 .preview-flags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
 .preview-flags .flag { background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.85rem; }
 .preview-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.source-card h2 { margin-top: 0; }
+.source-passages dt { font-weight: 600; margin-top: 0.6rem; }
+.source-passages dd { margin: 0.2rem 0 0; }

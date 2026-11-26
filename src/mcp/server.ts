@@ -25,13 +25,15 @@ import { registerGetClaim } from './tools/get_claim.js';
 import { registerListPendingApprovals } from './tools/list_pending_approvals.js';
 import { registerDecideClaim } from './tools/decide_claim.js';
 import { registerGetSpendReport } from './tools/get_spend_report.js';
+import { registerAskPolicy } from './tools/ask_policy.js';
 
 const INSTRUCTIONS =
   'Spendwise records expense claims for the connected user. Typical flow: call get_policy first, read the ' +
   "user's receipt images yourself, then call create_claim with one expense per receipt (amounts in rupees, " +
   'category from get_policy). Claims are saved as drafts; only submit when the user asks. Always tell the user ' +
   'which lines were flagged and share the app_url so they can attach receipt images. Managers can use ' +
-  'list_pending_approvals, get_claim and decide_claim.';
+  'list_pending_approvals, get_claim and decide_claim. For policy or GST invoice questions call ask_policy and ' +
+  'relay its answer with the source link; if it says not covered, say so instead of answering from memory.';
 
 /** Build a fresh MCP server bound to one authenticated user (stateless: one per request). */
 export function buildMcpServer(ctx: McpContext): McpServer {
@@ -46,6 +48,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
   registerListPendingApprovals(server, ctx);
   registerDecideClaim(server, ctx);
   registerGetSpendReport(server, ctx);
+  registerAskPolicy(server, ctx);
   return server;
 }
 

@@ -51,9 +51,9 @@ describe.skipIf(!hasTestDb)('MCP server', () => {
   });
 
   describe('transport & auth', () => {
-    it('lists the 10 tools', async () => {
+    it('lists the 11 tools', async () => {
       expect(await emp.listTools()).toEqual([
-        'add_expenses', 'create_claim', 'decide_claim', 'get_claim', 'get_policy',
+        'add_expenses', 'ask_policy', 'create_claim', 'decide_claim', 'get_claim', 'get_policy',
         'get_spend_report', 'list_my_claims', 'list_pending_approvals', 'submit_claim', 'update_expense',
       ]);
     });

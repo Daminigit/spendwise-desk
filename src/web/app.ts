@@ -22,6 +22,7 @@ import { settingsRouter } from './routes/settings.js';
 import { uploadRouter } from './routes/upload.js';
 import { receiptsRouter } from './routes/receipts.js';
 import { assistantRouter } from './routes/assistant.js';
+import { sourcesRouter } from './routes/sources.js';
 import { assertStorageConfig } from '../storage/index.js';
 import { logError } from '../log.js';
 
@@ -112,6 +113,7 @@ export function createApp() {
   app.use(uploadRouter);
   app.use(receiptsRouter);
   app.use(assistantRouter);
+  app.use(sourcesRouter);
 
   // 404
   app.use((req, res) => {
