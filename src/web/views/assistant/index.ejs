@@ -4,10 +4,12 @@
 </div>
 
 <% if (!aiReady) { %>
-  <div class="flash flash-error" role="alert">The assistant is not configured on this server (ANTHROPIC_API_KEY is missing).</div>
+  <div class="flash flash-error" role="alert">The assistant is not configured on this server (set GROQ_API_KEY or ANTHROPIC_API_KEY).</div>
+<% } else { %>
+  <p class="muted small">Answers by <%= modelName %><%= whisper ? ' · voice by Whisper' : ' · voice by your browser' %>.</p>
 <% } %>
 
-<section class="assistant" data-assistant>
+<section class="assistant" data-assistant data-whisper="<%= whisper ? 'true' : 'false' %>">
   <div class="assistant-log card" aria-live="polite" data-log>
     <div class="bubble bubble-bot">
       Hi <%= user.name.split(' ')[0] %>. Tap the mic and say something like

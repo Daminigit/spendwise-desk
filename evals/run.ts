@@ -4,7 +4,7 @@
  *   EVAL_DATABASE_URL=postgresql://…/spendwise_eval npm run eval
  *
  * Uses its own database (it resets the Acme demo org there). With
- * ANTHROPIC_API_KEY set, the model-dependent checks run against Claude; without
+ * GROQ_API_KEY (or ANTHROPIC_API_KEY) set, the model-dependent checks run against the model; without
  * it they are reported as skipped and everything else still runs.
  *
  * The three required checks:
@@ -38,7 +38,13 @@ delete process.env.DATABASE_URL_UNPOOLED;
 process.env.SESSION_SECRET ||= 'eval-session-secret-not-for-production-xx';
 process.env.APP_URL ||= 'http://localhost:3000';
 delete process.env.DEMO_MCP_TOKEN;
-const AI = Boolean(process.env.ANTHROPIC_API_KEY);
+const AI = Boolean(process.env.GROQ_API_KEY || process.env.ANTHROPIC_API_KEY);
+// Groq's free tier allows ~30 requests and ~8K tokens a minute per model: space calls out and retry 429s.
+if (process.env.GROQ_API_KEY) {
+  process.env.AI_MIN_INTERVAL_MS ||= '2500';
+  process.env.AI_MAX_RETRIES ||= '8';
+}
+const NO_KEY = 'skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY)';
 
 // ── Capture every log line the app writes during the run ─────────────────────
 const captured: string[] = [];
@@ -94,20 +100,21 @@ async function main() {
   const { runWeeklyLoop, words } = await import('../src/pulse/weekly.js');
   const { runDueOrgs } = await import('../src/pulse/scheduler.js');
   const { approveAction, editAction, rejectAction, actionsForRun } = await import('../src/pulse/approvals.js');
-  const { ask, setClaudeForTests } = await import('../src/ai/claude.js');
+  const { ask, setClaudeForTests } = await import('../src/ai/model.js');
   const { createToken } = await import('../src/domain/tokens.js');
   const { startServer } = await import('../tests/helpers/fixtures.js');
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
   const D = await import('./datasets.js');
+  const { modelLabel, isTranscriptionConfigured, transcribe } = await import('../src/ai/model.js');
+  const { redactText } = await import('../src/ai/redact.js');
+  const { readFileSync } = await import('fs');
 
   type Theme = import('../src/pulse/weekly.js').Theme;
   type Pulse = import('../src/pulse/weekly.js').Pulse;
   type Explainer = import('../src/pulse/weekly.js').Explainer;
 
-  out(
-    `\nSpendwise Desk evals · model: ${AI ? process.env.CLAUDE_MODEL || 'claude-opus-5-5' : 'none (ANTHROPIC_API_KEY not set)'}\n`,
-  );
+  out(`\nSpendwise Desk evals · model: ${AI ? modelLabel() : 'none (no AI key set)'}\n`);
 
   // Fresh demo org: users, claims, a week of questions, a flagged draft claim.
   const seeded = (await seedDemo({ reset: true, verbose: false }))!;
@@ -137,8 +144,16 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   // 1. FEASIBILITY
   // ═════════════════════════════════════════════════════════════════════════
-  const queue: { q: string; reply: string; covered: boolean; drafter: string; source: string; searched: string[] }[] =
-    [];
+  type Answer = Awaited<ReturnType<typeof answerPolicyQuestion>>;
+  const queue: {
+    q: string;
+    reply: string;
+    covered: boolean;
+    drafter: string;
+    source: string;
+    searched: string[];
+    answer: Answer;
+  }[] = [];
   for (const q of D.QUEUE) {
     const a = await answerPolicyQuestion(riya, q);
     queue.push({
@@ -148,6 +163,7 @@ async function main() {
       drafter: a.drafter,
       source: a.sources[0] ? `${a.sources[0].title} (${a.sources[0].url}, checked ${a.sources[0].lastChecked})` : '',
       searched: a.searched,
+      answer: a,
     });
   }
   const queueOk = queue.filter((x) =>
@@ -370,7 +386,7 @@ async function main() {
   // 3a. Sample 15 claims across both loops.
   const sampled: { loop: string; claim: string; tracesTo: string; ok: boolean; why: string }[] = [];
   for (const x of queue.filter((q) => q.covered).slice(0, 8)) {
-    const a = await answerPolicyQuestion(riya, x.q);
+    const a = x.answer; // reuse the drafted answer (no second model call)
     const src = a.sources[0];
     const p = src ? byId.get(src.passageId) : undefined;
     const missing = amounts(a.reply).filter((amt) => !(p && amounts(p.text).includes(amt)));
@@ -542,25 +558,11 @@ async function main() {
   );
 
   // ═════════════════════════════════════════════════════════════════════════
-  // 4. MODEL-DEPENDENT (needs ANTHROPIC_API_KEY)
+  // 4. MODEL-DEPENDENT (needs GROQ_API_KEY or ANTHROPIC_API_KEY)
   // ═════════════════════════════════════════════════════════════════════════
   if (!AI) {
-    check(
-      'ai',
-      'Intent accuracy on 21 spoken/Hinglish utterances',
-      null,
-      'skipped: ANTHROPIC_API_KEY not set',
-      undefined,
-      false,
-    );
-    check(
-      'ai',
-      'Model-drafted answers cite the expected passage',
-      null,
-      'skipped: ANTHROPIC_API_KEY not set',
-      undefined,
-      false,
-    );
+    check('ai', 'Intent accuracy on 21 spoken/Hinglish utterances', null, NO_KEY, undefined, false);
+    check('ai', 'Model-drafted answers cite the expected passage', null, NO_KEY, undefined, false);
   } else {
     const rows = [];
     for (const u of D.INTENTS) {
@@ -620,6 +622,53 @@ async function main() {
       cited / covered.length >= 0.8,
       `${cited}/${covered.length} (${pct(cited, covered.length)})`,
       answerRows,
+      false,
+    );
+  }
+
+  // Voice: synthesised Indian-English clips → Whisper → the same interpreter.
+  if (!isTranscriptionConfigured()) {
+    check(
+      'ai',
+      `Voice: ${D.VOICE.length} spoken clips → Whisper → intent`,
+      null,
+      'skipped: GROQ_API_KEY not set',
+      undefined,
+      false,
+    );
+  } else {
+    const audioDir = path.join(path.dirname(new URL(import.meta.url).pathname), 'audio');
+    const vrows = [];
+    for (const v of D.VOICE) {
+      const heard = await transcribe(readFileSync(path.join(audioDir, v.file)), v.file).catch(
+        (e: Error) => `ERROR ${e.message}`,
+      );
+      const r = AI ? await interpret({ user: riya, text: heard, channel: 'voice' }) : null;
+      const lower = heard.toLowerCase();
+      const heardOk = v.mustHear.every((w) => lower.includes(w));
+      const fields = (r?.pending?.expense ?? {}) as { amount?: number | null };
+      const amountOk =
+        v.amount === undefined ||
+        fields.amount === v.amount ||
+        Boolean(r?.preview?.lines.some((l) => l.value.replace(/[₹,]/g, '').startsWith(String(v.amount))));
+      vrows.push({
+        file: v.file,
+        heard: redactText(heard), // never write a spoken PAN or phone number into the report
+        heardOk,
+        expected: v.intent,
+        got: r?.intent ?? null,
+        intentOk: r?.intent === v.intent,
+        amountOk,
+        piiRedacted: v.pii ? Boolean(r && r.redacted.length > 0) : null,
+      });
+    }
+    const vok = vrows.filter((x) => x.heardOk && x.intentOk && x.amountOk && x.piiRedacted !== false).length;
+    check(
+      'ai',
+      `Voice: ${vrows.length} spoken clips → Whisper → intent`,
+      vok / vrows.length >= 0.75,
+      `${vok}/${vrows.length} end to end (heard ${vrows.filter((x) => x.heardOk).length}, intent ${vrows.filter((x) => x.intentOk).length}, PII clip redacted ${vrows.some((x) => x.piiRedacted) ? 'yes' : 'no'})`,
+      vrows,
       false,
     );
   }
@@ -772,7 +821,7 @@ async function main() {
   const failed = required.filter((c) => c.pass === false);
   const result = {
     ranAt: new Date().toISOString(),
-    model: AI ? process.env.CLAUDE_MODEL || 'claude-opus-5-5' : null,
+    model: AI ? modelLabel() : null,
     summary: {
       required: required.length,
       passed: required.filter((c) => c.pass).length,
@@ -794,7 +843,7 @@ async function main() {
   const md = [
     '# Eval results',
     '',
-    `Run ${result.ranAt.slice(0, 16).replace('T', ' ')} UTC · model: ${result.model ?? 'none (ANTHROPIC_API_KEY not set; model-dependent checks skipped)'}`,
+    `Run ${result.ranAt.slice(0, 16).replace('T', ' ')} UTC · model: ${result.model ?? 'none (no AI key set; model-dependent checks skipped)'}`,
     '',
     `**Required checks: ${result.summary.passed}/${result.summary.required} passed**${result.summary.skipped ? ` · ${result.summary.skipped} skipped` : ''}`,
     '',

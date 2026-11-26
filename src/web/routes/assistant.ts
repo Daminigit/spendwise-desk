@@ -3,12 +3,21 @@
  * POST /assistant/message   { text, channel, pending } → reply (never writes claims)
  * POST /assistant/confirm   { token, channel }         → writes exactly the previewed action
  * POST /assistant/cancel    { intent, channel }        → logs that the preview was dropped
+ * POST /assistant/transcribe multipart audio           → { text } via Whisper (audio is not stored)
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { z } from 'zod';
 import { requireAuth } from '../../auth/middleware.js';
-import { isAiConfigured } from '../../ai/claude.js';
+import {
+  AiUnavailableError,
+  isAiConfigured,
+  isTranscriptionConfigured,
+  modelLabel,
+  transcribe,
+} from '../../ai/model.js';
+import { DomainError } from '../../domain/errors.js';
 import { interpret, INTENTS, type Pending } from '../../assistant/interpret.js';
 import { confirmAction } from '../../assistant/actions.js';
 import { recordEvent } from '../../assistant/events.js';
@@ -47,14 +56,19 @@ const messageSchema = z.object({
 });
 
 assistantRouter.get('/assistant', (_req, res) => {
-  res.render('assistant/index', { title: 'Assistant', aiReady: isAiConfigured() });
+  res.render('assistant/index', {
+    title: 'Assistant',
+    aiReady: isAiConfigured(),
+    whisper: isTranscriptionConfigured(),
+    modelName: modelLabel(),
+  });
 });
 
 assistantRouter.post(
   '/assistant/message',
   ah(async (req, res) => {
     if (!isAiConfigured())
-      return res.status(503).json({ error: 'The assistant is not configured (ANTHROPIC_API_KEY).' });
+      return res.status(503).json({ error: 'The assistant is not configured (GROQ_API_KEY or ANTHROPIC_API_KEY).' });
     const body = parseForm(messageSchema, req.body);
     const reply = await interpret({
       user: req.user!,
@@ -87,5 +101,45 @@ assistantRouter.post(
       text: 'preview cancelled',
     });
     res.json({ ok: true });
+  }),
+);
+
+// Voice clips are short; 10 MB is far above a 30-second recording.
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1, fields: 2 },
+});
+const AUDIO_TYPES = /^audio\/(webm|ogg|mp4|mpeg|mp3|wav|x-wav|m4a|x-m4a|aac|flac)(;.*)?$/i;
+const EXT: Record<string, string> = {
+  webm: 'webm',
+  ogg: 'ogg',
+  mp4: 'mp4',
+  mpeg: 'mp3',
+  mp3: 'mp3',
+  wav: 'wav',
+  'x-wav': 'wav',
+  m4a: 'm4a',
+  'x-m4a': 'm4a',
+  aac: 'm4a',
+  flac: 'flac',
+};
+
+assistantRouter.post(
+  '/assistant/transcribe',
+  audioUpload.single('audio'),
+  ah(async (req, res) => {
+    if (!isTranscriptionConfigured()) return res.status(503).json({ error: 'Voice transcription is not configured.' });
+    const file = req.file;
+    if (!file || !file.buffer.length) throw new DomainError('No audio received.', 'invalid');
+    if (!AUDIO_TYPES.test(file.mimetype)) throw new DomainError('That is not an audio recording.', 'invalid');
+    const sub = file.mimetype.split(';')[0].split('/')[1].toLowerCase();
+    // The audio goes to Whisper once and is dropped; it is never written to disk or the database.
+    try {
+      const text = await transcribe(file.buffer, `voice.${EXT[sub] ?? 'webm'}`);
+      res.json({ text: text.slice(0, 1000) });
+    } catch (err) {
+      if (err instanceof AiUnavailableError) return res.status(503).json({ error: err.message });
+      throw err;
+    }
   }),
 );

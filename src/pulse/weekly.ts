@@ -22,7 +22,7 @@ import { randomUUID } from 'crypto';
 import { and, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { assistantEvents, categories, claims, expenses, runActions, weeklyRuns, type WeeklyRun } from '../db/schema.js';
-import { askJson, AiUnavailableError } from '../ai/claude.js';
+import { askJson, AiUnavailableError } from '../ai/model.js';
 import { redactText } from '../ai/redact.js';
 import { loadCorpus, todayIso, type Passage } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';

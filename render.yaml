@@ -24,7 +24,10 @@ services:
       # Neon direct connection string (same, without "-pooler"), used for migrations.
       - key: DATABASE_URL_UNPOOLED
         sync: false
-      # Claude API key for voice intent, policy answers and the weekly pulse. Never committed.
+      # Groq key: language model (gpt-oss) and Whisper voice. Never committed.
+      - key: GROQ_API_KEY
+        sync: false
+      # Optional: Claude instead of Groq (needs API credit); set AI_PROVIDER=anthropic.
       - key: ANTHROPIC_API_KEY
         sync: false
       # Weekly pulse runs by itself on Mondays 09:00 IST; drafts still need approval.

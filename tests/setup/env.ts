@@ -16,7 +16,10 @@ process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET ??= 'test-session-secret-not-for-production';
 process.env.APP_URL = 'http://spendwise.test';
 delete process.env.S3_ENDPOINT; // never a real bucket in tests
-delete process.env.ANTHROPIC_API_KEY; // never a real model call in tests (see setClaudeForTests)
+delete process.env.ANTHROPIC_API_KEY; // never a real model call in tests (see setClaudeForTests / setGroqForTests)
+delete process.env.GROQ_API_KEY;
+delete process.env.AI_PROVIDER;
+delete process.env.AI_MIN_INTERVAL_MS;
 delete process.env.RECEIPT_STORAGE; // default backend (Postgres) unless a test opts into disk
 process.env.UPLOADS_DIR = mkdtempSync(path.join(tmpdir(), 'spendwise-test-uploads-'));
 

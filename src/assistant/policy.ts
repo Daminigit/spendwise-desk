@@ -13,7 +13,7 @@
  * Every answer that is shown carries a source link and its last-checked date.
  */
 
-import { askJson, AiUnavailableError } from '../ai/claude.js';
+import { askJson, AiUnavailableError } from '../ai/model.js';
 import { loadCorpus, type Passage } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';
 import { violatesScope } from './guard.js';

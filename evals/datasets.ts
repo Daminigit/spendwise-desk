@@ -180,3 +180,15 @@ export const INTENTS: {
   { text: 'hello', as: 'employee', intent: 'other' },
   { text: 'tell me a joke', as: 'employee', intent: 'other' },
 ];
+
+/** Spoken clips (evals/audio, macOS "Rishi" en-IN voice) → Whisper → intent. Scored only with GROQ_API_KEY. */
+export const VOICE: { file: string; intent: string; amount?: number; mustHear: string[]; pii?: boolean }[] = [
+  { file: 'uber-450.m4a', intent: 'log_expense', amount: 450, mustHear: ['uber', 'airport'] },
+  { file: 'hotel-limit.m4a', intent: 'policy_question', mustHear: ['hotel', 'limit'] },
+  { file: 'lunch-hinglish.m4a', intent: 'log_expense', amount: 1200, mustHear: ['lunch'] },
+  { file: 'gstin-question.m4a', intent: 'policy_question', mustHear: ['hotel'] },
+  { file: 'claim-status.m4a', intent: 'claim_status', mustHear: ['claim'] },
+  { file: 'advice.m4a', intent: 'advice_request', mustHear: ['mutual fund'] },
+  { file: 'pan-number.m4a', intent: 'policy_question', mustHear: ['meals'], pii: true },
+  { file: 'weekend-cab.m4a', intent: 'policy_question', mustHear: ['sunday'] },
+];

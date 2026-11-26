@@ -13,7 +13,7 @@
  * is saved until the user confirms the preview (see actions.ts).
  */
 
-import { askJson, AiUnavailableError } from '../ai/claude.js';
+import { askJson, AiUnavailableError } from '../ai/model.js';
 import type { PiiKind } from '../ai/redact.js';
 import {
   getClaim,

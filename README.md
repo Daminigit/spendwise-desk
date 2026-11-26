@@ -32,23 +32,24 @@ The brief was written for an investment platform. Our instructor allowed any pro
 ```mermaid
 flowchart LR
   subgraph In["Response loop"]
-    V["Voice / text<br/>/assistant"] --> G1{"Advice guard<br/>(code)"}
+    MIC["Mic"] --> WH["Whisper on Groq<br/>(speech → text)"] --> V["Text<br/>/assistant"]
+    V --> G1{"Advice guard<br/>(code)"}
     M["Employee's Claude<br/>MCP ask_policy"] --> G1
     G1 -- refused --> R["Refusal"]
-    G1 --> X["Claude: intent + fields<br/>(JSON only)"]
+    G1 --> X["Model: intent + fields<br/>(strict JSON, checked in code)"]
     X --> C1["Code: validate, ask for missing,<br/>policy checks, preview"]
     X --> P["Policy question"]
     P --> S["Keyword search<br/>over corpus (code)"]
     S --> K{"Canonical<br/>answer?"}
     K -- yes --> A1["Reuse approved explainer"]
-    K -- no --> A2["Claude answers from passages<br/>code checks citations, ≤3 sentences, scope"]
+    K -- no --> A2["Model answers from passages<br/>code checks citations, ≤3 sentences, scope"]
     C1 --> PV["Preview + signed token"]
     PV --> OK["Person confirms → write"]
   end
   subgraph W["Weekly loop"]
     E[("assistant_events<br/>redacted")] --> T["Group by source passage<br/>+ flags + rejections (code)"]
     F[("claim lines<br/>flags, rejections")] --> T
-    T --> PU["Pulse ≤250 words<br/>Claude: summary + 3 ideas"]
+    T --> PU["Pulse ≤250 words<br/>model: summary + 3 ideas"]
     T --> EX["Explainer ≤6 cited bullets"]
     PU --> Q["Pending actions"]
     EX --> Q
@@ -62,7 +63,7 @@ flowchart LR
 
 | Layer | Where |
 |---|---|
-| Claude client (redaction in and out, refusals as data, server-side fallback) | [`src/ai/claude.ts`](src/ai/claude.ts) |
+| Model client: Groq or Claude, Whisper, redaction in and out, refusals as data, JSON replies checked against the schema | [`src/ai/model.ts`](src/ai/model.ts), [`src/ai/schema.ts`](src/ai/schema.ts) |
 | PII redaction (prompts, replies, storage, logs) | [`src/ai/redact.ts`](src/ai/redact.ts), [`src/log.ts`](src/log.ts) |
 | Response loop | [`src/assistant/interpret.ts`](src/assistant/interpret.ts), [`policy.ts`](src/assistant/policy.ts), [`guard.ts`](src/assistant/guard.ts), [`actions.ts`](src/assistant/actions.ts) |
 | Corpus and retrieval | [`src/corpus/`](src/corpus) |
@@ -72,13 +73,13 @@ flowchart LR
 | Web app (Express + EJS, no build step) | [`src/web/`](src/web) |
 | Evals | [`evals/`](evals) |
 
-Stack: Node 22, TypeScript, Express, Postgres (Neon) with Drizzle, the Anthropic SDK (`claude-opus-5-5`), and the MCP TypeScript SDK. Voice uses the browser's own speech recognition (`en-IN`) and speech synthesis.
+Stack: Node 22, TypeScript, Express, Postgres (Neon) with Drizzle, and the MCP TypeScript SDK. The language model is **Groq** (`openai/gpt-oss-120b` for answers and the pulse, `openai/gpt-oss-20b` for intent, both with strict JSON-schema output), with **Claude** (`claude-opus-5-5`) as a drop-in alternative chosen by `AI_PROVIDER`. Voice is recorded in the browser and transcribed by **Whisper** (`whisper-large-v3-turbo` on Groq); where that is unavailable, the browser's own speech recognition (`en-IN`) is used. Replies are read aloud with the browser's speech synthesis.
 
 ### Where the line is drawn between the model and code
 
 The model is used only where language understanding is needed. Everything that must be right every time is plain code.
 
-| Claude does | Code does |
+| The model does | Code does |
 |---|---|
 | Works out the intent and fields of a message (*"paanch sau ka lunch kal"* → log_expense, ₹500, MEALS, yesterday) | Validates every field (amount range, real date, not in the future, category exists, claim is the user's draft) and asks for what is missing, one question at a time |
 | Answers a policy question from the retrieved passages | Retrieves the passages; rejects an answer that cites a passage it was not given; caps it at 3 sentences; blocks advice and return figures |
@@ -93,12 +94,12 @@ When the model is unavailable, the system says so instead of guessing. Policy an
 
 ### 1. Response loop: `/assistant` and the MCP `ask_policy` tool
 
-1. The employee taps the mic (or types). The browser turns speech into text.
+1. The employee taps the mic (or types). The browser records until they pause, and **Whisper** turns the audio into text (the audio is sent once and never stored). Without a Groq key, the browser's own recogniser is used instead.
 2. The **advice guard** (code) refuses investment, tax-planning and returns requests before the model runs.
-3. Claude returns only `{intent, amount, date, merchant, category, claim, note, question}` as structured JSON.
+3. The model returns only `{intent, amount, date, merchant, category, claim, note, question}` as strict JSON. Code checks the shape again, retries once, and never acts on a reply that does not fit.
 4. What happens next depends on the intent:
    - **log_expense:** code checks each field and asks follow-up questions. It then runs the policy checks and shows a **preview card** with flags (e.g. *Over item limit*).
-   - **policy_question:** search the corpus, then reuse a **canonical answer** if one exists; otherwise Claude drafts from the passages and code checks the draft. The reply shows the **source link and last-checked date**. If nothing matches: *"I couldn't find this… I searched X and Y."*
+   - **policy_question:** search the corpus, then reuse a **canonical answer** if one exists; otherwise the model drafts from the passages and code checks the draft. The reply shows the **source link and last-checked date**. If nothing matches: *"I couldn't find this… I searched X and Y."*
    - **claim_status:** answered from the database.
    - **approve_claim / reject_claim** (managers): a preview, and a reason is required to reject.
 5. Nothing is saved until the person presses the confirm button.
@@ -118,7 +119,7 @@ It is triggered by the **Run weekly loop now** button, by `PULSE_SCHEDULE=weekly
 ### How the loops connect
 
 - **Response → weekly.** Each question is stored with the passage it matched. If the same topic is asked 5+ times in the window, it is marked *repeated* and always shown in the pulse (*"Asked 5+ times this week: Supplier GSTIN (7)"*), even if it would otherwise fall outside the top themes.
-- **Weekly → response.** Approving the explainer writes it to `canonical_answers`. The next policy question on that topic is answered **from the approved text, without calling Claude**. The reply carries an *Approved answer* badge, and each reuse is counted. The next run sees the topic is already canonical and does not ask again. Admins can retire a canonical answer under *Pulse → Canonical answers*.
+- **Weekly → response.** Approving the explainer writes it to `canonical_answers`. The next policy question on that topic is answered **from the approved text, without calling the model**. The reply carries an *Approved answer* badge, and each reuse is counted. The next run sees the topic is already canonical and does not ask again. Admins can retire a canonical answer under *Pulse → Canonical answers*.
 
 Both directions are tested ([`tests/integration/weekly.test.ts`](tests/integration/weekly.test.ts)).
 
@@ -177,14 +178,14 @@ createdb spendwise_eval
 EVAL_DATABASE_URL=postgresql://localhost/spendwise_eval npm run eval
 ```
 
-This runs over the assembled system (database, both loops, the HTTP server and an MCP client), writes [`evals/RESULTS.md`](evals/RESULTS.md), [`evals/results/latest.json`](evals/results/latest.json) and [`evals/samples/`](evals/samples), and exits 1 if a required check fails. It also runs in CI. With `ANTHROPIC_API_KEY` set, the model-dependent checks run against Claude too.
+This runs over the assembled system (database, both loops, the HTTP server and an MCP client), writes [`evals/RESULTS.md`](evals/RESULTS.md), [`evals/results/latest.json`](evals/results/latest.json) and [`evals/samples/`](evals/samples), and exits 1 if a required check fails. It also runs in CI. With `GROQ_API_KEY` (or `ANTHROPIC_API_KEY`) set, the model-dependent checks run against the real model, including 8 spoken clips (`evals/audio/`, an Indian English voice) sent through Whisper. Calls are spaced and retried to fit Groq's free tier.
 
 | Check | What it does | Result |
 |---|---|---|
 | **1. Feasibility** | 12 queued questions → each gets a cited draft or an explicit "not covered" (≤3 sentences); the loop runs from the scheduler path with no human step; themes ≤5, each with ids and a window; pulse ≤250 words; explainer ≤6 bullets with sources | 6/6 |
 | **2. Correctness of edits** | Diffs database state before and after: an edit changes only that draft; approving one action writes only that action; rejecting touches nothing else; confirming one reply draft writes one line; no double approval or replay | 6/6 |
 | **3. Grounding and compliance** | 15 claims sampled from both loops trace to a source passage (every ₹ amount must appear in it) or to existing ids; uncovered questions say so (web + MCP); 16 advice and return-figure requests × 2 repeats × 2 channels are refused and never reach the pulse; PAN / account / phone in 6 phrasings × 2 repeats × 2 channels plus a pulse edit and an error path, then every table and every captured log line is searched for the raw values | 7/7 |
-| Model-dependent | Intent accuracy on 21 spoken and Hinglish utterances; whether Claude's answers cite the expected passage | run with a key |
+| Model-dependent | Intent accuracy on 21 spoken and Hinglish utterances; whether the model's answers cite the expected passage; 8 audio clips → Whisper → intent (including a spoken PAN that must be redacted) | run with a key |
 
 **Iteration** (same labelled data, earlier versions kept in [`evals/legacy/`](evals/legacy)):
 
@@ -223,7 +224,7 @@ Requires Node 22+ and Postgres 14+.
 
 ```bash
 npm install
-cp .env.example .env.local     # set DATABASE_URL, SESSION_SECRET, ANTHROPIC_API_KEY
+cp .env.example .env.local     # set DATABASE_URL, SESSION_SECRET, GROQ_API_KEY
 npm run migrate
 npm run seed                   # demo org, a week of questions, a flagged draft claim (-- --reset to recreate)
 npm run dev                    # http://localhost:3000
@@ -241,8 +242,9 @@ npm run dev                    # http://localhost:3000
 |---|---|
 | `DATABASE_URL` | Postgres (on Neon: the pooled `-pooler` URL). `DATABASE_URL_UNPOOLED` is the direct URL, used for migrations |
 | `SESSION_SECRET` | Long random string; also signs invites and assistant confirmation tokens |
-| `ANTHROPIC_API_KEY` | Claude. Without it the assistant says it is unavailable, policy answers use the extractive fallback, and the pulse uses templates |
-| `CLAUDE_MODEL` | Optional; default `claude-opus-5-5` |
+| `GROQ_API_KEY` | Groq: the language model and Whisper voice (free tier at console.groq.com). Without any AI key the assistant says it is unavailable, policy answers use the extractive fallback, and the pulse uses templates |
+| `GROQ_MODEL`, `GROQ_FAST_MODEL`, `WHISPER_MODEL` | Optional; defaults `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `whisper-large-v3-turbo` |
+| `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` | Optional: Claude instead (needs API credit). With both keys set, `AI_PROVIDER=groq` or `anthropic` picks one |
 | `PULSE_SCHEDULE` | `weekly` runs the loop on Mondays at 09:00 IST |
 | `APP_URL`, `SEED_DEMO`, `DEMO_MCP_TOKEN`, `RECEIPT_STORAGE`, `S3_*` | As in v1 (see `.env.example`) |
 
@@ -253,7 +255,7 @@ npm run dev                    # http://localhost:3000
 Render (web service) and a **new** Neon database, separate from the v1 Spendwise deployment.
 
 1. **Neon:** create a project (region `ap-southeast-1`) and copy the pooled and direct connection strings.
-2. **Render:** New → **Blueprint** → pick `Daminigit/spendwise-desk`. `render.yaml` creates the `spendwise-desk` web service. When prompted, set `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (direct) and `ANTHROPIC_API_KEY`. `SESSION_SECRET` is generated, and `SEED_DEMO=true` and `PULSE_SCHEDULE=weekly` are already set.
+2. **Render:** New → **Blueprint** → pick `Daminigit/spendwise-desk`. `render.yaml` creates the `spendwise-desk` web service. When prompted, set `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (direct) and `GROQ_API_KEY` (leave `ANTHROPIC_API_KEY` empty unless you use Claude). `SESSION_SECRET` is generated, and `SEED_DEMO=true` and `PULSE_SCHEDULE=weekly` are already set.
 3. The first boot migrates and seeds the demo org, a week of questions and a flagged claim. Open `/login`, sign in as `admin@acme.test`, go to **Pulse** and press **Run weekly loop now**.
 4. Optional: a Render **Cron Job** running `node dist/pulse/cli.js` every Monday, because a free web service sleeps when idle and may miss the in-process schedule.
 
@@ -265,9 +267,9 @@ The Dockerfile works on other hosts (it runs as a non-root user, has a health ch
 
 - **One public source.** Only CBIC's tax-invoice page could be fetched and verified. Blocked input tax credit (section 17(5)) and the GSTIN structure are not covered, so the assistant says so.
 - **Keyword retrieval, not embeddings.** It is deterministic and explainable over about 25 passages, but it relies on a hand-written synonym map. A new phrasing for an unmapped word can miss, and the system then says "not covered" rather than guessing. The 100% routing score overstates this (see Evaluations).
-- **Voice depends on the browser.** Speech recognition works in Chrome and Edge; Safari falls back to typing. There is no server-side speech-to-text, and audio never leaves the browser.
+- **Voice audio goes to Groq.** With Whisper, each clip is sent to Groq once for transcription and is not stored by Spendwise; only the redacted text is kept. Without a Groq key, voice falls back to the browser's recogniser (Chrome and Edge only).
 - **Advice guard is a pattern list.** It is backed by the model's own `advice_request` intent and the output check, but a determined new phrasing could still get past the code layer.
-- **Model checks pending.** The two model-dependent evals and Claude-written sample drafts need an API key with credit. The committed samples were produced with the extractive fallback.
+- **Open models on a free tier.** gpt-oss on Groq is fast and free but can be weaker than Claude Opus on Hinglish and on staying within the passages; the code checks catch bad replies, and the evals measure the rest. Free-tier rate limits make the full eval take several minutes.
 - **Demo data is synthetic.** The weekly inputs are seeded, not real user traffic.
 - **The email is a draft.** Nothing is sent; an admin copies it into their mail client.
 - **Free-tier hosting** sleeps when idle (the first request takes about a minute).
@@ -278,7 +280,7 @@ The Dockerfile works on other hosts (it runs as a non-root user, has a health ch
 
 | Rubric | Where to look |
 |---|---|
-| Voice UX & intent handling (25%) | `/assistant`: mic, Hinglish, follow-up questions, chips, preview cards, read-aloud; `interpret.ts`; intent eval |
+| Voice UX & intent handling (25%) | `/assistant`: mic with Whisper (any browser) and silence detection, Hinglish, follow-up questions, chips, preview cards, read-aloud; `interpret.ts`; intent eval |
 | MCP usage & system design (20%) | 11 MCP tools incl. `ask_policy`; the architecture above; the model-vs-code split; two approval gates |
 | Grounding & RAG quality (15%) | Corpus, retrieval, citation checks, "not covered" with what was searched, `/sources`, canonical reuse |
 | AI evals & iteration depth (20%) | `npm run eval`, `evals/RESULTS.md`, v1 → v2 → v3 tables |

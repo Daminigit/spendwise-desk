@@ -231,8 +231,133 @@
     send(input.value, 'text');
   });
 
-  // ── Speech recognition ─────────────────────────────────────────────────────
+  // ── Voice input ────────────────────────────────────────────────────────────
+  // Preferred: record audio in the browser and transcribe it on the server with
+  // Whisper (works in every modern browser, including Safari). Fallback: the
+  // browser's own speech recognition (Chrome / Edge). Otherwise: type.
+  const canRecord = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  const useWhisper = root.dataset.whisper === 'true' && canRecord;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function setListening(on, label) {
+    micBtn.classList.toggle('listening', on);
+    micBtn.setAttribute('aria-label', on ? 'Stop listening' : 'Start speaking');
+    if (label) micStatus.textContent = label;
+  }
+
+  function sendVoice(text) {
+    text = String(text || '').trim();
+    if (!text) {
+      micStatus.textContent = "I didn't catch anything. Tap the mic and try again, or type.";
+      return;
+    }
+    micStatus.textContent = 'Nothing is saved until you confirm a preview.';
+    channel = 'voice';
+    send(text, 'voice');
+  }
+
+  if (useWhisper) {
+    const MAX_MS = 20000; // hard stop
+    const SILENCE_MS = 1400; // stop after this much quiet once speech was heard
+    let recorder = null;
+    let stream = null;
+    let chunks = [];
+    let stopTimer = null;
+    let audioCtx = null;
+
+    const pickType = () =>
+      ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find(
+        (t) => window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(t),
+      ) || '';
+
+    function stopRecording() {
+      if (recorder && recorder.state === 'recording') recorder.stop();
+    }
+
+    function watchSilence() {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        src.connect(analyser);
+        const buf = new Uint8Array(analyser.fftSize);
+        let heard = false;
+        let quietSince = performance.now();
+        const tick = () => {
+          if (!recorder || recorder.state !== 'recording') return;
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) sum += ((buf[i] - 128) / 128) ** 2;
+          const rms = Math.sqrt(sum / buf.length);
+          const now = performance.now();
+          if (rms > 0.04) {
+            heard = true;
+            quietSince = now;
+          } else if (heard && now - quietSince > SILENCE_MS) {
+            return stopRecording();
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      } catch {
+        /* no silence detection: the user taps to stop, or the hard stop ends it */
+      }
+    }
+
+    async function startRecording() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        micStatus.textContent = 'Microphone access was blocked. Allow it in the browser, or type instead.';
+        return;
+      }
+      chunks = [];
+      const type = pickType();
+      recorder = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream);
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size) chunks.push(e.data);
+      };
+      recorder.onstop = async () => {
+        clearTimeout(stopTimer);
+        stream.getTracks().forEach((t) => t.stop());
+        if (audioCtx) audioCtx.close().catch(() => {});
+        setListening(false, 'Transcribing…');
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size < 1000) return sendVoice('');
+        const form = new FormData();
+        const ext = (blob.type.split('/')[1] || 'webm').split(';')[0];
+        form.append('audio', blob, `voice.${ext}`);
+        try {
+          const res = await fetch('/assistant/transcribe', {
+            method: 'POST',
+            body: form,
+            credentials: 'same-origin',
+            headers: { accept: 'application/json' },
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Could not transcribe the audio.');
+          input.value = data.text || '';
+          sendVoice(data.text);
+        } catch (err) {
+          micStatus.textContent = `${err.message} You can type instead.`;
+        }
+      };
+      recorder.start();
+      setListening(true, 'Listening… speak now (it stops when you pause, or tap again).');
+      stopTimer = setTimeout(stopRecording, MAX_MS);
+      watchSilence();
+    }
+
+    micBtn.title = 'Speak (transcribed by Whisper)';
+    micBtn.addEventListener('click', () => {
+      if (recorder && recorder.state === 'recording') return stopRecording();
+      startRecording();
+    });
+    return;
+  }
+
   if (!Recognition) {
     micBtn.disabled = true;
     micBtn.title = 'Voice input needs Chrome or Edge';
@@ -250,9 +375,7 @@
   rec.onstart = () => {
     listening = true;
     finalText = '';
-    micBtn.classList.add('listening');
-    micBtn.setAttribute('aria-label', 'Stop listening');
-    micStatus.textContent = 'Listening… speak now.';
+    setListening(true, 'Listening… speak now.');
   };
   rec.onresult = (e) => {
     let interim = '';
@@ -273,14 +396,9 @@
   };
   rec.onend = () => {
     listening = false;
-    micBtn.classList.remove('listening');
-    micBtn.setAttribute('aria-label', 'Start speaking');
+    setListening(false);
     const text = (finalText || input.value).trim();
-    if (text) {
-      micStatus.textContent = 'Nothing is saved until you confirm a preview.';
-      channel = 'voice';
-      send(text, 'voice');
-    }
+    if (text) sendVoice(text);
   };
 
   micBtn.addEventListener('click', () => {

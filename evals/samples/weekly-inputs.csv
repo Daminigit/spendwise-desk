@@ -1,31 +1,31 @@
 id,source,created_at,channel_or_category,intent_or_flags,outcome_or_status,text,topic
-70074c63-6b07-4631-8e16-bd2feaf49548,assistant_question,2026-11-20T12:13:56.058Z,voice,policy_question,answered,What is the hotel limit per night?,policy-limit-lodge
-34003a5d-70c3-4af5-b28e-f9b0d60a60b7,assistant_question,2026-11-20T14:13:56.058Z,text,policy_question,answered,Do I need the GSTIN on a hotel bill?,policy-gstin
-f4bf19c6-e191-4d56-b704-7a3313303b59,assistant_question,2026-11-21T12:13:56.058Z,voice,policy_question,answered,"hotel ne GSTIN nahi diya, kya chalega?",policy-gstin
-2405abe1-6fb2-4423-8a60-d1da8d75b7d4,assistant_question,2026-11-21T13:13:56.058Z,voice,policy_question,answered,is GSTIN mandatory for a 2500 rupee bill,policy-gstin
-125f894e-82a7-4c15-a3b9-cd2f93120df4,assistant_question,2026-11-21T13:13:56.058Z,voice,policy_question,answered,What is the daily meals limit?,policy-limit-meals
-a48c83fe-8ef1-4909-bc37-2d67a030a851,assistant_question,2026-11-21T14:13:56.058Z,voice,log_expense,confirmed,add expense (demo),
-7c51f7cd-e4b4-4ae8-8585-3ea99468722c,assistant_question,2026-11-22T11:13:56.058Z,text,policy_question,answered,What happens if the supplier GSTIN is missing?,policy-gstin
-c17e9667-2c09-44ee-985b-acec382750a2,assistant_question,2026-11-22T11:13:56.058Z,voice,policy_question,answered,how much can I spend on a hotel stay,policy-limit-lodge
-9f5225c4-8c7e-48fb-bafe-151fdd172c77,assistant_question,2026-11-22T13:13:56.058Z,voice,policy_question,answered,Can I claim GST input credit on hotel food?,policy-flags
-1148be0b-5525-438d-8d5a-e8cac5e0fc50,assistant_question,2026-11-22T14:13:56.058Z,voice,log_expense,confirmed,add expense (demo),
-9aad5dfd-d0b3-4e89-a0ff-53bcc88d078d,assistant_question,2026-11-23T10:13:56.058Z,voice,policy_question,answered,Which bills need a GSTIN?,policy-gstin
-dde8785b-295a-4a95-94c1-17205c282f1e,assistant_question,2026-11-23T10:13:56.058Z,text,policy_question,answered,lodging limit kitna hai,policy-limit-lodge
-c421c53d-d474-425c-a8bd-faacd728ea19,assistant_question,2026-11-23T11:13:56.058Z,voice,policy_question,answered,Can I claim a cab on Sunday?,policy-weekend
-0d313cbc-922f-4915-a1ab-0755dc96b7b7,assistant_question,2026-11-23T11:13:56.058Z,text,policy_question,answered,What must a GST tax invoice show?,cbic-invoice-recipient
-04c09a37-a5b3-4311-af5d-2721adcf3574,assistant_question,2026-11-23T14:13:56.058Z,voice,log_expense,confirmed,add expense (demo),
-9bde6d8c-73dc-4045-9751-92031f1996b0,assistant_question,2026-11-24T10:13:56.058Z,voice,advice_request,refused,Should I put my reimbursement into a mutual fund?,
-d36beb90-4e7e-4965-8138-82781d3d987b,assistant_question,2026-11-24T12:13:56.058Z,text,policy_question,answered,how much for dinner with the team,policy-limit-meals
-342b7713-b6c9-442e-9f62-2be14766e929,assistant_question,2026-11-24T12:13:56.058Z,voice,policy_question,answered,Is gym membership reimbursable?,policy-notes
-2c99e241-f1fe-48e8-bad0-d634d41d47de,assistant_question,2026-11-24T14:13:56.058Z,voice,policy_question,answered,"my cab bill has no GSTIN, is that a problem",policy-gstin
-37835fd3-7780-4d58-ab51-c9b76f321b6e,assistant_question,2026-11-24T14:13:56.058Z,text,policy_question,answered,When do I need to attach a receipt?,policy-receipts
-cceb62be-fbdc-4e08-b548-5b2f43abfdc3,assistant_question,2026-11-24T14:13:56.058Z,voice,log_expense,confirmed,add expense (demo),
-243cc3eb-f468-43d6-9b6f-66bae6e55521,assistant_question,2026-11-25T10:13:56.058Z,voice,policy_question,answered,are weekend expenses allowed,policy-weekend
-5ba9731d-18cd-4a6f-aeec-36d2031abaf8,assistant_question,2026-11-25T13:13:56.058Z,text,policy_question,answered,GSTIN required above what amount?,policy-gstin
-2ee11917-f250-40fd-b549-18ba590ad9b4,assistant_question,2026-11-25T14:13:56.058Z,voice,policy_question,answered,Is there a cap on hotel rooms?,policy-limit-lodge
-ee88f486-c192-4988-a496-fd7aed04fa1d,assistant_question,2026-11-25T14:13:56.058Z,voice,log_expense,confirmed,add expense (demo),
-fc2f3a00-508a-4e9d-8918-781b1cbd5d3d,assistant_question,2026-11-26T14:13:56.058Z,voice,log_expense,confirmed,add expense (demo),
-b2e3f5a4-9bcd-4ecd-8b03-e0df7ef3060a,claim_line,2026-11-26T14:13:56.067Z,LODGE,MISSING_GSTIN,pending,,
-7cd4f05c-ec6d-4970-ac90-835adebd3eb9,claim_line,2026-11-26T14:13:56.067Z,MEALS,OVER_ITEM_LIMIT MISSING_GSTIN,pending,,
-325114ef-d64d-4f57-86c4-6a8fd0318218,claim_line,2026-11-26T14:13:56.067Z,MEALS,OVER_ITEM_LIMIT MISSING_GSTIN,pending,,
-57eb33c9-de15-4b14-a9ca-975cae15c456,claim_line,2026-11-26T14:13:56.067Z,TRAVEL,WEEKEND,pending,,
+22b4f0c9-676a-4704-9c81-81b1fe4609f9,assistant_question,2026-11-20T12:29:15.043Z,voice,policy_question,answered,What is the hotel limit per night?,policy-limit-lodge
+cd075984-1857-4a43-9e4b-443124d075f3,assistant_question,2026-11-20T14:29:15.043Z,text,policy_question,answered,Do I need the GSTIN on a hotel bill?,policy-gstin
+d14c05f6-2218-4458-8f39-e9c9b9670660,assistant_question,2026-11-21T12:29:15.043Z,voice,policy_question,answered,"hotel ne GSTIN nahi diya, kya chalega?",policy-gstin
+98694687-52cd-43a9-b149-b9e904a92bc4,assistant_question,2026-11-21T13:29:15.043Z,voice,policy_question,answered,is GSTIN mandatory for a 2500 rupee bill,policy-gstin
+1d78ec36-4ca2-4c1f-bdec-88af9441d7f4,assistant_question,2026-11-21T13:29:15.043Z,voice,policy_question,answered,What is the daily meals limit?,policy-limit-meals
+ca2d0364-e0c7-4c88-b1db-6c04610445a6,assistant_question,2026-11-21T14:29:15.043Z,voice,log_expense,confirmed,add expense (demo),
+1c74953c-53b3-4038-ae95-955382ef5806,assistant_question,2026-11-22T11:29:15.043Z,text,policy_question,answered,What happens if the supplier GSTIN is missing?,policy-gstin
+8ccb2d61-a0eb-4859-8384-9ac5ee621d2d,assistant_question,2026-11-22T11:29:15.043Z,voice,policy_question,answered,how much can I spend on a hotel stay,policy-limit-lodge
+2452a367-77bf-483a-8b75-4fbbeee820eb,assistant_question,2026-11-22T13:29:15.043Z,voice,policy_question,answered,Can I claim GST input credit on hotel food?,policy-flags
+b51c60a5-274b-45de-9577-d99760188252,assistant_question,2026-11-22T14:29:15.043Z,voice,log_expense,confirmed,add expense (demo),
+5a17000b-fa40-4f21-920b-9e0f89bf43e8,assistant_question,2026-11-23T10:29:15.043Z,voice,policy_question,answered,Which bills need a GSTIN?,policy-gstin
+a5322f21-267d-4749-8d93-7c21683327bb,assistant_question,2026-11-23T10:29:15.043Z,text,policy_question,answered,lodging limit kitna hai,policy-limit-lodge
+01f93150-b87a-45f3-8eb5-bdca5d0250fe,assistant_question,2026-11-23T11:29:15.043Z,voice,policy_question,answered,Can I claim a cab on Sunday?,policy-weekend
+fb5747e2-6067-4e16-922a-709cb70b95bd,assistant_question,2026-11-23T11:29:15.043Z,text,policy_question,answered,What must a GST tax invoice show?,cbic-invoice-recipient
+970987e8-9fb6-45d6-8a49-8d5d673e11f3,assistant_question,2026-11-23T14:29:15.043Z,voice,log_expense,confirmed,add expense (demo),
+a59d83d0-2c43-406b-94b7-bed8a22da66d,assistant_question,2026-11-24T10:29:15.043Z,voice,advice_request,refused,Should I put my reimbursement into a mutual fund?,
+5fb7d742-1746-49a0-9a41-bb85baf896d6,assistant_question,2026-11-24T12:29:15.043Z,text,policy_question,answered,how much for dinner with the team,policy-limit-meals
+2e683ef8-fa34-4a6c-b3c0-57192f6c39c7,assistant_question,2026-11-24T12:29:15.043Z,voice,policy_question,answered,Is gym membership reimbursable?,policy-notes
+6f996b1e-8a3a-4ccb-90b4-bc6ba51ea62f,assistant_question,2026-11-24T14:29:15.043Z,voice,policy_question,answered,"my cab bill has no GSTIN, is that a problem",policy-gstin
+7a296c1e-9ab5-4c1f-83f9-4b01a9e48fe7,assistant_question,2026-11-24T14:29:15.043Z,text,policy_question,answered,When do I need to attach a receipt?,policy-receipts
+506225ad-b2a9-45ac-bf86-3406b78b7caa,assistant_question,2026-11-24T14:29:15.043Z,voice,log_expense,confirmed,add expense (demo),
+7bb0b242-9c09-438c-974a-a505bc498ffb,assistant_question,2026-11-25T10:29:15.043Z,voice,policy_question,answered,are weekend expenses allowed,policy-weekend
+f871d6d8-7fb7-4e42-a1f8-cef9d0fd5ce9,assistant_question,2026-11-25T13:29:15.043Z,text,policy_question,answered,GSTIN required above what amount?,policy-gstin
+766965a6-5051-4c86-8307-45ff206b8f80,assistant_question,2026-11-25T14:29:15.043Z,voice,policy_question,answered,Is there a cap on hotel rooms?,policy-limit-lodge
+55874d8b-66c6-43dc-920b-c9a4c233b50c,assistant_question,2026-11-25T14:29:15.043Z,voice,log_expense,confirmed,add expense (demo),
+79d3ed39-1919-4c82-b92c-7946a29b2ba1,assistant_question,2026-11-26T14:29:15.043Z,voice,log_expense,confirmed,add expense (demo),
+23b10b9a-483f-4f7d-8914-40ab175b0ceb,claim_line,2026-11-26T14:29:15.051Z,LODGE,MISSING_GSTIN,pending,,
+09fbd9dc-3da5-4a04-8605-90dca44aa905,claim_line,2026-11-26T14:29:15.051Z,MEALS,OVER_ITEM_LIMIT MISSING_GSTIN,pending,,
+1b29d841-83f8-4989-a6a4-b27b2818c0c9,claim_line,2026-11-26T14:29:15.051Z,MEALS,OVER_ITEM_LIMIT MISSING_GSTIN,pending,,
+98b58fcc-a309-48af-a745-fcce97ff33b5,claim_line,2026-11-26T14:29:15.051Z,TRAVEL,WEEKEND,pending,,

@@ -6,7 +6,7 @@
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/beta/messages/messages';
-import { setClaudeForTests } from '../../src/ai/claude.js';
+import { setClaudeForTests } from '../../src/ai/model.js';
 import { answerPolicyQuestion } from '../../src/assistant/policy.js';
 import {
   createTestOrg,

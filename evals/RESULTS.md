@@ -1,8 +1,8 @@
 # Eval results
 
-Run 2026-11-26 14:13 UTC · model: none (ANTHROPIC_API_KEY not set; model-dependent checks skipped)
+Run 2026-11-26 14:29 UTC · model: none (no AI key set; model-dependent checks skipped)
 
-**Required checks: 19/19 passed** · 2 skipped
+**Required checks: 19/19 passed** · 3 skipped
 
 ## 1. Feasibility
 
@@ -10,7 +10,7 @@ Run 2026-11-26 14:13 UTC · model: none (ANTHROPIC_API_KEY not set; model-depend
 |---|---|---|
 | pass | Every queued question gets a cited draft or an explicit "not covered" | 12/12 (8 drafted, 4 not covered) |
 | pass | Reply drafts are 3 sentences or fewer | 12/12 |
-| pass | Weekly loop completes without manual intervention once triggered | run a0e8598f (2026-11-20 to 2026-11-26), trigger=schedule |
+| pass | Weekly loop completes without manual intervention once triggered | run 2f1f68a6 (2026-11-20 to 2026-11-26), trigger=schedule |
 | pass | Every theme carries item ids and a stated window (max 5 themes) | 5 themes, 0 without ids/window; window "20–26 Nov 2026" |
 | pass | Pulse is 250 words or fewer | 135 words |
 | pass | Explainer is 6 bullets or fewer, with sources and a last-checked date | 4 bullets, 2 sources, checked 2026-11-26 |
@@ -47,8 +47,9 @@ Run 2026-11-26 14:13 UTC · model: none (ANTHROPIC_API_KEY not set; model-depend
 
 | Result | Check | Detail |
 |---|---|---|
-| skipped | Intent accuracy on 21 spoken/Hinglish utterances | skipped: ANTHROPIC_API_KEY not set |
-| skipped | Model-drafted answers cite the expected passage | skipped: ANTHROPIC_API_KEY not set |
+| skipped | Intent accuracy on 21 spoken/Hinglish utterances | skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY) |
+| skipped | Model-drafted answers cite the expected passage | skipped: no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY) |
+| skipped | Voice: 8 spoken clips → Whisper → intent | skipped: GROQ_API_KEY not set |
 
 ## Iteration (v1 → v2)
 

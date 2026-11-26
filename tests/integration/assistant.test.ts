@@ -9,7 +9,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { db } from '../../src/db/index.js';
 import { assistantEvents, claims } from '../../src/db/schema.js';
-import { setClaudeForTests } from '../../src/ai/claude.js';
+import { setClaudeForTests, setTranscribeForTests } from '../../src/ai/model.js';
 import { createClaim, submitClaim } from '../../src/domain/claims.js';
 import {
   createTestOrg,
@@ -75,7 +75,10 @@ describe.skipIf(!hasTestDb)('assistant', () => {
     org = await createTestOrg('assistant');
   });
   afterAll(async () => server?.close());
-  afterEach(() => setClaudeForTests(null));
+  afterEach(() => {
+    setClaudeForTests(null);
+    setTranscribeForTests(null);
+  });
 
   const json = (body: unknown) => ({
     method: 'POST',
@@ -230,6 +233,42 @@ describe.skipIf(!hasTestDb)('assistant', () => {
     expect(c.status).toBe(200);
     const [after] = await db.select().from(claims).where(eq(claims.id, created.claimId));
     expect(after.status).toBe('rejected');
+  });
+
+  it('transcribes a voice clip with Whisper and rejects non-audio uploads', async () => {
+    const s = await loginAs(server, org.emp);
+    const seen: string[] = [];
+    setTranscribeForTests(async (audio, name) => {
+      seen.push(`${name}:${audio.length}`);
+      return 'add 450 rupees uber to the airport';
+    });
+    const audio = new FormData();
+    audio.append('audio', new Blob([new Uint8Array(2048)], { type: 'audio/webm' }), 'voice.webm');
+    const ok = await s.fetch('/assistant/transcribe', {
+      method: 'POST',
+      body: audio,
+      headers: { accept: 'application/json' },
+    });
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toEqual({ text: 'add 450 rupees uber to the airport' });
+    expect(seen).toEqual(['voice.webm:2048']);
+
+    const bad = new FormData();
+    bad.append('audio', new Blob(['hello'], { type: 'text/plain' }), 'x.txt');
+    const no = await s.fetch('/assistant/transcribe', {
+      method: 'POST',
+      body: bad,
+      headers: { accept: 'application/json' },
+    });
+    expect(no.status).toBe(400);
+  });
+
+  it('refuses to transcribe for signed-out users', async () => {
+    const r = await fetch(`${server.url}/assistant/transcribe`, {
+      method: 'POST',
+      headers: { accept: 'application/json' },
+    });
+    expect(r.status).toBe(401);
   });
 
   it('answers claim status from the database', async () => {

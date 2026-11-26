@@ -15,7 +15,7 @@ import { eq } from 'drizzle-orm';
 import type { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { db } from '../../src/db/index.js';
 import { canonicalAnswers, publishedOutputs, runActions, weeklyRuns } from '../../src/db/schema.js';
-import { setClaudeForTests } from '../../src/ai/claude.js';
+import { setClaudeForTests } from '../../src/ai/model.js';
 import { seedAssistantEvents, seedRecentClaim } from '../../src/db/seed-assistant.js';
 import { runWeeklyLoop, words, type Explainer, type Pulse, type Theme } from '../../src/pulse/weekly.js';
 import { approveAction, editAction, rejectAction } from '../../src/pulse/approvals.js';
@@ -205,7 +205,20 @@ describe.skipIf(!hasTestDb)('weekly loop', () => {
 
   it('connection: the same question asked 5 times through the assistant shows up in the pulse', async () => {
     const fresh = await createTestOrg('weekly-link');
-    fakeClaude({ other: { intent: 'policy_question', question: 'When is a receipt needed?' } });
+    fakeClaude({
+      other: {
+        intent: 'policy_question',
+        amount: null,
+        date: null,
+        merchant: null,
+        category: null,
+        description: null,
+        claim_ref: null,
+        payment_method: null,
+        note: null,
+        question: 'When is a receipt needed?',
+      },
+    });
     // The assistant drafts a policy answer each time (the extraction fake returns no answer → not covered is fine).
     for (const q of [
       'when do I need a receipt',
