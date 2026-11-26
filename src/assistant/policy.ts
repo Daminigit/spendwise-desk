@@ -37,7 +37,12 @@ export interface PolicyAnswer {
   topic: string;
   /** Set when an approved canonical answer was reused instead of drafting a new one. */
   canonical: { id: string; title: string } | null;
+  /** Who wrote the reply: Claude from passages, an approved canonical answer, the passage itself, or nobody. */
+  drafter: 'model' | 'canonical' | 'extractive' | 'none';
 }
+
+/** Without Claude, quote the best passage only when the match is this strong. */
+export const EXTRACTIVE_MIN_SCORE = 3;
 
 interface ModelAnswer {
   covered: boolean;
@@ -76,6 +81,7 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
     searched,
     topic,
     canonical: null,
+    drafter: 'none',
   });
 
   if (!hits.length) return notCovered();
@@ -99,6 +105,7 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
       searched,
       topic: canon.topic,
       canonical: { id: canon.id, title: canon.title },
+      drafter: 'canonical',
     };
   }
 
@@ -121,9 +128,25 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
     model = res.value;
   } catch (err) {
     if (err instanceof AiUnavailableError) {
+      // No model: quote the best passage word for word (grounded by construction),
+      // but only when the match is strong; otherwise say it is not covered.
+      const best = hits[0];
+      if (best.score < EXTRACTIVE_MIN_SCORE) return notCovered();
       return {
-        ...notCovered(),
-        reply: 'The assistant is unavailable right now. Please check the policy page in Settings.',
+        reply: capSentences(best.passage.text, 3),
+        covered: true,
+        sources: [
+          {
+            title: `${best.passage.sourceTitle}: ${best.passage.heading}`,
+            url: best.passage.url,
+            lastChecked: best.passage.lastChecked,
+            passageId: best.passage.id,
+          },
+        ],
+        searched,
+        topic,
+        canonical: null,
+        drafter: 'extractive',
       };
     }
     throw err;
@@ -148,6 +171,7 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
     searched,
     topic,
     canonical: null,
+    drafter: 'model',
   };
 }
 

@@ -19,6 +19,8 @@ describe('advice guard (code, not prompt)', () => {
     'Should I put my reimbursement into a mutual fund?',
     'paisa SIP mein daalun?',
     'is bitcoin a good idea',
+    'Where should I park my reimbursement money for good returns?',
+    'How much will 10,000 grow in 5 years?',
   ])('refuses: %s', (text) => {
     expect(isAdviceRequest(text)).toBe(true);
   });
@@ -32,6 +34,8 @@ describe('advice guard (code, not prompt)', () => {
     'Where is my Bangalore claim?',
     'approve Eve’s claim',
     'Lunch with client at Taj 3200',
+    'printer paper stock for the office, 900',
+    'return cab from the client office, 380',
   ])('allows: %s', (text) => {
     expect(isAdviceRequest(text)).toBe(false);
   });

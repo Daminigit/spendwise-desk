@@ -63,6 +63,16 @@ jobs:
 
       # Run the compiled app the way production does: migrate on boot, seed the
       # demo org, serve. Then hit the landing page and the MCP endpoint.
+      # The three required evals (feasibility, correctness of edits, grounding
+      # and compliance) over the assembled system. Model-dependent checks are
+      # skipped here (no API key in CI); see evals/RESULTS.md.
+      - name: Evals
+        env:
+          EVAL_DATABASE_URL: postgresql://spendwise:spendwise@localhost:5432/spendwise_eval
+        run: |
+          PGPASSWORD=spendwise createdb -h localhost -U spendwise spendwise_eval
+          npm run eval
+
       - name: Smoke-test the production build
         env:
           DATABASE_URL: postgresql://spendwise:spendwise@localhost:5432/spendwise_smoke

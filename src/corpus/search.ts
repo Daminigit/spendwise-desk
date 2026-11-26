@@ -77,13 +77,23 @@ function stem(w: string): string {
 }
 
 /** The user's own words weigh 1; words added through the synonym map weigh less. */
-const SYNONYM_WEIGHT = 0.5;
+export interface SearchOptions {
+  /** Multiplier for a word found in the passage heading. */
+  headingBoost: number;
+  /** Weight of words added by the synonym map (the user's own words weigh 1). */
+  synonymWeight: number;
+  /** Normalise long passages down (BM25-style). */
+  lengthNorm: boolean;
+}
 
-function expand(words: string[]): Map<string, number> {
+/** Current ranking (v2). v1 was { headingBoost: 1, synonymWeight: 1, lengthNorm: false }; see evals/. */
+export const DEFAULT_SEARCH: SearchOptions = { headingBoost: 2, synonymWeight: 0.5, lengthNorm: true };
+
+function expand(words: string[], synonymWeight: number): Map<string, number> {
   const out = new Map<string, number>();
   for (const w of words) out.set(stem(w), 1);
   for (const w of words) {
-    for (const s of SYNONYMS[w] ?? []) if (!out.has(stem(s))) out.set(stem(s), SYNONYM_WEIGHT);
+    for (const s of SYNONYMS[w] ?? []) if (!out.has(stem(s))) out.set(stem(s), synonymWeight);
   }
   return out;
 }
@@ -97,8 +107,13 @@ export interface SearchHit {
 /** Minimum score for a passage to count as evidence. */
 export const MIN_SCORE = 1.2;
 
-export function search(passages: Passage[], question: string, k = 4): { hits: SearchHit[]; terms: string[] } {
-  const weights = expand(tokenize(question));
+export function search(
+  passages: Passage[],
+  question: string,
+  k = 4,
+  opts: SearchOptions = DEFAULT_SEARCH,
+): { hits: SearchHit[]; terms: string[] } {
+  const weights = expand(tokenize(question), opts.synonymWeight);
   const terms = [...weights.keys()];
   if (!terms.length) return { hits: [], terms };
 
@@ -118,8 +133,11 @@ export function search(passages: Passage[], question: string, k = 4): { hits: Se
       // A word in the heading counts double: "Supplier GSTIN" beats a long
       // catch-all passage that merely mentions GSTIN. Long passages are
       // normalised down a little (BM25-style) so they do not win by length.
-      const raw = matched.reduce((s, t) => s + idf(t) * weights.get(t)! * (headings[i].has(t) ? 2 : 1), 0);
-      const score = raw / (0.6 + 0.4 * (bodies[i].length / avgLen));
+      const raw = matched.reduce(
+        (s, t) => s + idf(t) * weights.get(t)! * (headings[i].has(t) ? opts.headingBoost : 1),
+        0,
+      );
+      const score = opts.lengthNorm ? raw / (0.6 + 0.4 * (bodies[i].length / avgLen)) : raw;
       return { passage, score, matched };
     })
     .filter((h) => h.score >= MIN_SCORE)
