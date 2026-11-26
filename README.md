@@ -1,6 +1,6 @@
 # Spendwise Desk
 
-Expense claims for small Indian teams — with voice, cited policy answers and a weekly finance pulse. Built on [Spendwise](https://github.com/Daminigit/spendwise) v1.
+Expense claims for small Indian teams — with voice, cited policy answers and a weekly finance pulse. Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1.
 
 An employee drops receipt photos into **their own Claude** and says *"Log these from my Bangalore trip."* Claude reads the receipts and sends the lines to Spendwise over MCP. Spendwise checks them against the company policy with plain code (limits, GSTIN, weekends, duplicates, trip dates), saves a draft claim, routes it to the manager, keeps an audit trail, and gives finance reports and a CSV export for Tally / Zoho Books / Xero.
 
