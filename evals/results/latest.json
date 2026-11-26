@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-26T15:40:59.720Z",
+  "ranAt": "2026-11-26T17:15:06.802Z",
   "model": "Groq openai/gpt-oss-120b (intent: openai/gpt-oss-20b)",
   "summary": {
     "required": 25,
@@ -19,7 +19,7 @@
           "reply": "The hotel limit is ₹6,000 per night.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Policy notes (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Policy notes (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -37,7 +37,7 @@
                 "id": "policy-limit-lodge",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Lodging limits",
                 "text": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -46,7 +46,7 @@
                 "id": "policy-notes",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Policy notes",
                 "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
@@ -55,7 +55,7 @@
                 "id": "policy-limit-other",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Other limits",
                 "text": "Other (OTHER): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -64,7 +64,7 @@
                 "id": "policy-limit-sw",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Software limits",
                 "text": "Software (SW): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -78,13 +78,13 @@
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Policy notes",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-notes"
               },
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Lodging limits",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-limit-lodge"
               }
@@ -92,7 +92,7 @@
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "0e519cf9-161d-4ce3-b59c-d6316450dcca",
+          "draftId": "38c52ea4-77f0-4b28-a646-8dd9dbf3a794",
           "verdict": "pass",
           "flags": [
             "info: Asked 5 times this week."
@@ -106,10 +106,10 @@
         },
         {
           "q": "Do I need a GSTIN on a ₹2,500 bill?",
-          "reply": "Yes. A supplier GSTIN is required for any expense above ₹2,000.00.",
+          "reply": "Yes. The policy requires a supplier GSTIN for any expense above ₹2,000.00, so a ₹2,500 bill needs it.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Supplier GSTIN (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Supplier GSTIN (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -127,7 +127,7 @@
                 "id": "policy-gstin",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Supplier GSTIN",
                 "text": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver."
@@ -136,7 +136,7 @@
                 "id": "policy-limit-meals",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Meals limits",
                 "text": "Meals (MEALS): per-item limit ₹1,500.00; daily limit ₹2,500.00. Spending over a limit is flagged for the approver, not blocked."
@@ -145,7 +145,7 @@
                 "id": "policy-receipts",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Receipts",
                 "text": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted."
@@ -154,7 +154,7 @@
                 "id": "policy-flags",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "How policy checks work",
                 "text": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding."
@@ -163,12 +163,12 @@
             "bestScore": 6.378890864171122,
             "invalidCitations": [],
             "trimmed": false,
-            "reply": "Yes. A supplier GSTIN is required for any expense above ₹2,000.00.",
+            "reply": "Yes. The policy requires a supplier GSTIN for any expense above ₹2,000.00, so a ₹2,500 bill needs it.",
             "covered": true,
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Supplier GSTIN",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-gstin"
               }
@@ -176,7 +176,7 @@
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "61413845-623d-4fe6-9e1d-fc3d286c3d44",
+          "draftId": "1ff24d59-0aaf-4276-a890-b786cbd6156c",
           "verdict": "pass",
           "flags": [
             "info: Asked 8 times this week."
@@ -190,10 +190,10 @@
         },
         {
           "q": "When do I need to attach a receipt?",
-          "reply": "A receipt image is required for any expense above ₹500.00.",
+          "reply": "You must attach a receipt image for any expense above ₹500.00. Claims missing such a receipt are flagged when submitted.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Receipts (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Receipts (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -211,7 +211,7 @@
                 "id": "policy-receipts",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Receipts",
                 "text": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted."
@@ -220,7 +220,7 @@
                 "id": "policy-notes",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Policy notes",
                 "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
@@ -229,7 +229,7 @@
                 "id": "policy-flags",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "How policy checks work",
                 "text": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding."
@@ -238,12 +238,12 @@
             "bestScore": 5.559592551436772,
             "invalidCitations": [],
             "trimmed": false,
-            "reply": "A receipt image is required for any expense above ₹500.00.",
+            "reply": "You must attach a receipt image for any expense above ₹500.00. Claims missing such a receipt are flagged when submitted.",
             "covered": true,
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Receipts",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-receipts"
               }
@@ -251,7 +251,7 @@
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "a93f3393-0109-4477-ba92-0a92440bbc4b",
+          "draftId": "473b1f4d-4a67-476b-8d7a-bf0b080b8366",
           "verdict": "pass",
           "flags": [],
           "routing": "Finance desk: expense policy. Receipts. Asked 2 times in the last 7 days.",
@@ -263,10 +263,10 @@
         },
         {
           "q": "Can I claim a cab on Sunday?",
-          "reply": "Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit.",
+          "reply": "Yes, you can claim a cab on Sunday; it is allowed but will be flagged for the approver to check.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Weekend spend (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Weekend spend (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -284,7 +284,7 @@
                 "id": "policy-weekend",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Weekend spend",
                 "text": "Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check."
@@ -293,7 +293,7 @@
                 "id": "policy-limit-travel",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Travel limits",
                 "text": "Travel (TRAVEL): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -302,7 +302,7 @@
                 "id": "policy-categories",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Expense categories",
                 "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
@@ -311,26 +311,20 @@
             "bestScore": 6.69573549962565,
             "invalidCitations": [],
             "trimmed": false,
-            "reply": "Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit.",
+            "reply": "Yes, you can claim a cab on Sunday; it is allowed but will be flagged for the approver to check.",
             "covered": true,
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Weekend spend",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-weekend"
-              },
-              {
-                "title": "Acme Travel Pvt Ltd expense policy: Travel limits",
-                "url": "http://localhost:3000/settings/policy",
-                "lastChecked": "2026-11-26",
-                "passageId": "policy-limit-travel"
               }
             ],
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "e13d9ffe-3675-4174-9af3-8dd5b7586451",
+          "draftId": "7d625391-6a23-4db2-a49d-03e8fa007e56",
           "verdict": "pass",
           "flags": [],
           "routing": "Finance desk: expense policy. Weekend spend. Asked 3 times in the last 7 days. 1 claim line flagged on this rule this week (Weekend).",
@@ -342,7 +336,7 @@
         },
         {
           "q": "What must a GST tax invoice show about the supplier?",
-          "reply": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also must include the signature or digital signature of the supplier or an authorised representative.",
+          "reply": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
           "covered": true,
           "drafter": "model",
           "source": "CGST Invoice Rules: Tax invoice: Supplier details, serial number and date (https://cbic-gst.gov.in/gst-invoice-rules.html, checked 2026-11-26)",
@@ -372,7 +366,7 @@
                 "id": "policy-gstin",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Supplier GSTIN",
                 "text": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver."
@@ -399,7 +393,7 @@
             "bestScore": 8.08150828761553,
             "invalidCitations": [],
             "trimmed": false,
-            "reply": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also must include the signature or digital signature of the supplier or an authorised representative.",
+            "reply": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
             "covered": true,
             "sources": [
               {
@@ -407,22 +401,14 @@
                 "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
                 "lastChecked": "2026-11-26",
                 "passageId": "cbic-invoice-supplier"
-              },
-              {
-                "title": "CGST Invoice Rules: Tax invoice: Place of supply, reverse charge and signature",
-                "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
-                "lastChecked": "2026-11-26",
-                "passageId": "cbic-invoice-place-signature"
               }
             ],
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "b85d538d-6e7d-4013-b54c-93429700c2f4",
-          "verdict": "flag",
-          "flags": [
-            "warn: Model reviewer: Draft adds extra info about signature"
-          ],
+          "draftId": "b23cad84-013a-49e9-8cda-3e1ec5669ac6",
+          "verdict": "pass",
+          "flags": [],
           "routing": "Finance desk: GST invoice rules. Supplier details, serial number and date. Asked 1 time in the last 7 days.",
           "agents": [
             "corpus",
@@ -435,7 +421,7 @@
           "reply": "No, alcohol is not reimbursable.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Policy notes (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Policy notes (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -453,7 +439,7 @@
                 "id": "policy-notes",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Policy notes",
                 "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
@@ -467,7 +453,7 @@
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Policy notes",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-notes"
               }
@@ -475,7 +461,7 @@
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "0c884d8e-6cd1-438d-8bde-056262eea06a",
+          "draftId": "980beda6-5928-47cf-a2c1-bb9fc67ff604",
           "verdict": "pass",
           "flags": [],
           "routing": "Finance desk: expense policy. Policy notes. Asked 2 times in the last 7 days.",
@@ -513,7 +499,7 @@
             "canonical": null,
             "drafter": "none"
           },
-          "draftId": "a6a81864-ca67-48cd-abfd-3bf98d764df6",
+          "draftId": "90b56aba-ec3c-42f9-8c8c-130f72a91275",
           "verdict": "pass",
           "flags": [
             "info: Not covered by the corpus; the reply says so and names what was searched."
@@ -548,7 +534,7 @@
                 "id": "policy-flags",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "How policy checks work",
                 "text": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding."
@@ -557,7 +543,7 @@
                 "id": "policy-categories",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Expense categories",
                 "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
@@ -566,7 +552,7 @@
                 "id": "policy-limit-lodge",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Lodging limits",
                 "text": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -575,7 +561,7 @@
                 "id": "policy-notes",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Policy notes",
                 "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
@@ -590,7 +576,7 @@
             "canonical": null,
             "drafter": "none"
           },
-          "draftId": "5a3a376e-cd4d-4b85-a03e-e90805d178ac",
+          "draftId": "7fbab109-4286-43c1-9d44-85a9812eb0b0",
           "verdict": "pass",
           "flags": [
             "info: Not covered by the corpus; the reply says so and names what was searched."
@@ -604,10 +590,10 @@
         },
         {
           "q": "how much for dinner with the team",
-          "reply": "The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00.",
+          "reply": "The per‑item limit for meals is ₹1,500, and the total daily limit is ₹2,500.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Meals limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Meals limits (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -625,7 +611,7 @@
                 "id": "policy-limit-meals",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Meals limits",
                 "text": "Meals (MEALS): per-item limit ₹1,500.00; daily limit ₹2,500.00. Spending over a limit is flagged for the approver, not blocked."
@@ -634,7 +620,7 @@
                 "id": "policy-categories",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Expense categories",
                 "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
@@ -643,12 +629,12 @@
             "bestScore": 2.3024575213020975,
             "invalidCitations": [],
             "trimmed": false,
-            "reply": "The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00.",
+            "reply": "The per‑item limit for meals is ₹1,500, and the total daily limit is ₹2,500.",
             "covered": true,
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Meals limits",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-limit-meals"
               }
@@ -656,7 +642,7 @@
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "41076522-f4cf-467b-9811-1e84184cb7fe",
+          "draftId": "2144c0f5-913f-4ae3-9b35-cecd5133267a",
           "verdict": "pass",
           "flags": [],
           "routing": "Finance desk: expense policy. Meals limits. Asked 3 times in the last 7 days. 2 claim lines flagged on this rule this week (Over item limit).",
@@ -694,7 +680,7 @@
             "canonical": null,
             "drafter": "none"
           },
-          "draftId": "59b6ceba-d46a-4b1f-8e87-46a673122b86",
+          "draftId": "f6f6e95a-114f-4012-98ac-d62c677da19e",
           "verdict": "pass",
           "flags": [
             "info: Not covered by the corpus; the reply says so and names what was searched."
@@ -708,10 +694,10 @@
         },
         {
           "q": "what is the client entertainment limit",
-          "reply": "The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit.",
+          "reply": "The per‑item limit for client entertainment is ₹10,000, and there is no daily limit.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Client Entertainment limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Client Entertainment limits (https://spendwise-desk.onrender.com/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
@@ -729,7 +715,7 @@
                 "id": "policy-limit-ent",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Client Entertainment limits",
                 "text": "Client Entertainment (ENT): per-item limit ₹10,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -738,7 +724,7 @@
                 "id": "policy-categories",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Expense categories",
                 "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
@@ -747,7 +733,7 @@
                 "id": "policy-notes",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Policy notes",
                 "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
@@ -756,7 +742,7 @@
                 "id": "policy-limit-other",
                 "sourceId": "company-policy",
                 "sourceTitle": "Acme Travel Pvt Ltd expense policy",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "heading": "Other limits",
                 "text": "Other (OTHER): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
@@ -765,12 +751,12 @@
             "bestScore": 10.3129706965102,
             "invalidCitations": [],
             "trimmed": false,
-            "reply": "The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit.",
+            "reply": "The per‑item limit for client entertainment is ₹10,000, and there is no daily limit.",
             "covered": true,
             "sources": [
               {
                 "title": "Acme Travel Pvt Ltd expense policy: Client Entertainment limits",
-                "url": "http://localhost:3000/settings/policy",
+                "url": "https://spendwise-desk.onrender.com/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-limit-ent"
               }
@@ -778,7 +764,7 @@
             "canonical": null,
             "drafter": "model"
           },
-          "draftId": "91d34963-60d0-4ad3-870e-fcc6300eb36a",
+          "draftId": "a2210435-fe76-4504-a261-f125d4abaaab",
           "verdict": "pass",
           "flags": [],
           "routing": "Finance desk: expense policy. Client Entertainment limits. Asked 1 time in the last 7 days.",
@@ -816,7 +802,7 @@
             "canonical": null,
             "drafter": "none"
           },
-          "draftId": "962f57c9-0687-433c-b696-11c377051f55",
+          "draftId": "a319bdab-76fc-42e1-8001-16d066924ae1",
           "verdict": "pass",
           "flags": [
             "info: Not covered by the corpus; the reply says so and names what was searched."
@@ -835,7 +821,7 @@
       "group": "feasibility",
       "name": "Each question runs through 3 parallel agents, the orchestrator (routing note) and the reviewer, then waits for a person",
       "pass": true,
-      "detail": "12/12 with all three agents, a routing note and a verdict (11 pass, 1 flagged, 0 rejected); 12 pending, 0 sent without approval",
+      "detail": "12/12 with all three agents, a routing note and a verdict (12 pass, 0 flagged, 0 rejected); 12 pending, 0 sent without approval",
       "required": true
     },
     {
@@ -849,7 +835,7 @@
       "group": "feasibility",
       "name": "Weekly loop completes without manual intervention once triggered",
       "pass": true,
-      "detail": "run 143b7ea1 (2026-11-20 to 2026-11-26), trigger=schedule",
+      "detail": "run ff13b4a2 (2026-11-20 to 2026-11-26), trigger=schedule",
       "required": true
     },
     {
@@ -891,7 +877,7 @@
           "window": "20–26 Nov 2026"
         },
         {
-          "label": "Receipts",
+          "label": "How policy checks work",
           "questions": 1,
           "flags": 0,
           "rejections": 0,
@@ -905,7 +891,7 @@
       "group": "feasibility",
       "name": "Pulse is 250 words or fewer",
       "pass": true,
-      "detail": "170 words",
+      "detail": "163 words",
       "required": true
     },
     {
@@ -994,34 +980,34 @@
         {
           "loop": "response",
           "claim": "The hotel limit is ₹6,000 per night.",
-          "tracesTo": "policy-notes → http://localhost:3000/settings/policy",
+          "tracesTo": "policy-notes → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Yes. A supplier GSTIN is required for any expense above ₹2,000.00.",
-          "tracesTo": "policy-gstin → http://localhost:3000/settings/policy",
+          "claim": "Yes. The policy requires a supplier GSTIN for any expense above ₹2,000.00, so a ₹2,500 bill needs it.",
+          "tracesTo": "policy-gstin → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "A receipt image is required for any expense above ₹500.00.",
-          "tracesTo": "policy-receipts → http://localhost:3000/settings/policy",
+          "claim": "You must attach a receipt image for any expense above ₹500.00. Claims missing such a receipt are flagged when submitted.",
+          "tracesTo": "policy-receipts → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit.",
-          "tracesTo": "policy-weekend → http://localhost:3000/settings/policy",
+          "claim": "Yes, you can claim a cab on Sunday; it is allowed but will be flagged for the approver to check.",
+          "tracesTo": "policy-weekend → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also must include the signature or digital signature of the supplier or an authorised representative.",
+          "claim": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
           "tracesTo": "cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html",
           "ok": true,
           "why": "source passage contains every amount"
@@ -1029,21 +1015,21 @@
         {
           "loop": "response",
           "claim": "No, alcohol is not reimbursable.",
-          "tracesTo": "policy-notes → http://localhost:3000/settings/policy",
+          "tracesTo": "policy-notes → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00.",
-          "tracesTo": "policy-limit-meals → http://localhost:3000/settings/policy",
+          "claim": "The per‑item limit for meals is ₹1,500, and the total daily limit is ₹2,500.",
+          "tracesTo": "policy-limit-meals → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit.",
-          "tracesTo": "policy-limit-ent → http://localhost:3000/settings/policy",
+          "claim": "The per‑item limit for client entertainment is ₹10,000, and there is no daily limit.",
+          "tracesTo": "policy-limit-ent → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
@@ -1078,20 +1064,20 @@
         {
           "loop": "weekly",
           "claim": "The supplier's GSTIN is required for any expense above ₹2,000.00, and a missing or invalid GSTIN is flagged for the approver.",
-          "tracesTo": "policy-gstin → http://localhost:3000/settings/policy",
+          "tracesTo": "policy-gstin → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "weekly",
-          "claim": "Policy checks never block a claim; they add flags such as missing or invalid GSTIN that the approving manager sees before deciding.",
-          "tracesTo": "policy-flags → http://localhost:3000/settings/policy",
+          "claim": "Policy checks add a flag for missing or invalid GSTIN, which the approving manager sees before deciding.",
+          "tracesTo": "policy-flags → https://spendwise-desk.onrender.com/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "weekly",
-          "claim": "A tax invoice issued by a registered person must display the supplier’s name, address and GSTIN, a unique consecutive serial number for the financial year, and the invoice issue date.",
+          "claim": "A tax invoice from a registered person must display the supplier's name, address and GSTIN, along with a unique serial number and issue date.",
           "tracesTo": "cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html",
           "ok": true,
           "why": "source passage contains every amount"
@@ -1396,10 +1382,9 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-limit-lodge",
             "policy-notes"
           ],
-          "ok": true
+          "ok": false
         },
         {
           "q": "how much can I spend on a hotel stay",
@@ -1471,8 +1456,7 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-gstin",
-            "cbic-invoice-recipient"
+            "policy-gstin"
           ],
           "ok": true
         },
@@ -1526,8 +1510,7 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-weekend",
-            "policy-limit-travel"
+            "policy-weekend"
           ],
           "ok": true
         },
@@ -1545,7 +1528,8 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-weekend"
+            "policy-weekend",
+            "policy-limit-travel"
           ],
           "ok": true
         },
@@ -1627,9 +1611,9 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-limit-travel"
+            "policy-limit-other"
           ],
-          "ok": false
+          "ok": true
         },
         {
           "q": "is alcohol reimbursable",

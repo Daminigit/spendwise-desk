@@ -1,6 +1,6 @@
 # Eval results
 
-Run 2026-11-26 15:40 UTC · model: Groq openai/gpt-oss-120b (intent: openai/gpt-oss-20b)
+Run 2026-11-26 17:15 UTC · model: Groq openai/gpt-oss-120b (intent: openai/gpt-oss-20b)
 
 **Required checks: 25/25 passed**
 
@@ -9,11 +9,11 @@ Run 2026-11-26 15:40 UTC · model: Groq openai/gpt-oss-120b (intent: openai/gpt-
 | Result | Check | Detail |
 |---|---|---|
 | pass | Every queued question gets a cited draft or an explicit "not covered" | 12/12 (8 drafted, 0 stopped by the reviewer, 4 not covered) |
-| pass | Each question runs through 3 parallel agents, the orchestrator (routing note) and the reviewer, then waits for a person | 12/12 with all three agents, a routing note and a verdict (11 pass, 1 flagged, 0 rejected); 12 pending, 0 sent without approval |
+| pass | Each question runs through 3 parallel agents, the orchestrator (routing note) and the reviewer, then waits for a person | 12/12 with all three agents, a routing note and a verdict (12 pass, 0 flagged, 0 rejected); 12 pending, 0 sent without approval |
 | pass | Reply drafts are 3 sentences or fewer | 12/12 |
-| pass | Weekly loop completes without manual intervention once triggered | run 143b7ea1 (2026-11-20 to 2026-11-26), trigger=schedule |
+| pass | Weekly loop completes without manual intervention once triggered | run ff13b4a2 (2026-11-20 to 2026-11-26), trigger=schedule |
 | pass | Every theme carries item ids and a stated window (max 5 themes) | 5 themes, 0 without ids/window; window "20–26 Nov 2026" |
-| pass | Pulse is 250 words or fewer | 170 words |
+| pass | Pulse is 250 words or fewer | 163 words |
 | pass | Explainer is 6 bullets or fewer, with sources and a last-checked date | 4 bullets, 2 sources, checked 2026-11-26 |
 
 ## 2. Correctness of edits
@@ -68,21 +68,21 @@ Run 2026-11-26 15:40 UTC · model: Groq openai/gpt-oss-120b (intent: openai/gpt-
 
 | Loop | Claim | Traces to | OK |
 |---|---|---|---|
-| response | The hotel limit is ₹6,000 per night. | policy-notes → http://localhost:3000/settings/policy | yes |
-| response | Yes. A supplier GSTIN is required for any expense above ₹2,000.00. | policy-gstin → http://localhost:3000/settings/policy | yes |
-| response | A receipt image is required for any expense above ₹500.00. | policy-receipts → http://localhost:3000/settings/policy | yes |
-| response | Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit. | policy-weekend → http://localhost:3000/settings/policy | yes |
-| response | It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
-| response | No, alcohol is not reimbursable. | policy-notes → http://localhost:3000/settings/policy | yes |
-| response | The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00. | policy-limit-meals → http://localhost:3000/settings/policy | yes |
-| response | The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit. | policy-limit-ent → http://localhost:3000/settings/policy | yes |
+| response | The hotel limit is ₹6,000 per night. | policy-notes → https://spendwise-desk.onrender.com/settings/policy | yes |
+| response | Yes. The policy requires a supplier GSTIN for any expense above ₹2,000.00, so a ₹2,500 bill needs it. | policy-gstin → https://spendwise-desk.onrender.com/settings/policy | yes |
+| response | You must attach a receipt image for any expense above ₹500.00. Claims missing such a receipt are flagged when submitted. | policy-receipts → https://spendwise-desk.onrender.com/settings/policy | yes |
+| response | Yes, you can claim a cab on Sunday; it is allowed but will be flagged for the approver to check. | policy-weekend → https://spendwise-desk.onrender.com/settings/policy | yes |
+| response | It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date. | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
+| response | No, alcohol is not reimbursable. | policy-notes → https://spendwise-desk.onrender.com/settings/policy | yes |
+| response | The per‑item limit for meals is ₹1,500, and the total daily limit is ₹2,500. | policy-limit-meals → https://spendwise-desk.onrender.com/settings/policy | yes |
+| response | The per‑item limit for client entertainment is ₹10,000, and there is no daily limit. | policy-limit-ent → https://spendwise-desk.onrender.com/settings/policy | yes |
 | weekly | Supplier GSTIN: 7 questions, 3 flagged lines, 0 rejected (20–26 Nov 2026) | 7 event ids + 3 expense ids | yes |
 | weekly | Lodging limits: 4 questions, 0 flagged lines, 0 rejected (20–26 Nov 2026) | 4 event ids + 0 expense ids | yes |
 | weekly | Meals limits: 2 questions, 2 flagged lines, 0 rejected (20–26 Nov 2026) | 2 event ids + 2 expense ids | yes |
 | weekly | Weekend spend: 2 questions, 1 flagged lines, 0 rejected (20–26 Nov 2026) | 2 event ids + 1 expense ids | yes |
-| weekly | The supplier's GSTIN is required for any expense above ₹2,000.00, and a missing or invalid GSTIN is flagged for the approver. | policy-gstin → http://localhost:3000/settings/policy | yes |
-| weekly | Policy checks never block a claim; they add flags such as missing or invalid GSTIN that the approving manager sees before deciding. | policy-flags → http://localhost:3000/settings/policy | yes |
-| weekly | A tax invoice issued by a registered person must display the supplier’s name, address and GSTIN, a unique consecutive serial number for the  | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
+| weekly | The supplier's GSTIN is required for any expense above ₹2,000.00, and a missing or invalid GSTIN is flagged for the approver. | policy-gstin → https://spendwise-desk.onrender.com/settings/policy | yes |
+| weekly | Policy checks add a flag for missing or invalid GSTIN, which the approving manager sees before deciding. | policy-flags → https://spendwise-desk.onrender.com/settings/policy | yes |
+| weekly | A tax invoice from a registered person must display the supplier's name, address and GSTIN, along with a unique serial number and issue date | cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html | yes |
 
 ## Iteration detail
 
