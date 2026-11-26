@@ -13,7 +13,7 @@
  */
 
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { addExpenses, createClaim, decideClaim, getClaim, type ExpenseInputRaw } from '../domain/claims.js';
+import { addExpenses, createClaim, decideClaim, getClaim, submitClaim, type ExpenseInputRaw } from '../domain/claims.js';
 import { DomainError } from '../domain/errors.js';
 import { appUrl } from '../config.js';
 import type { Actor } from './interpret.js';
@@ -21,7 +21,8 @@ import { nonceUsed, recordEvent, type Channel } from './events.js';
 
 export type AssistantAction =
   | { kind: 'add_expense'; claimId: string | null; newClaimTitle?: string; expense: ExpenseInputRaw }
-  | { kind: 'decide'; claimId: string; approve: boolean; note?: string };
+  | { kind: 'decide'; claimId: string; approve: boolean; note?: string }
+  | { kind: 'submit'; claimId: string };
 
 interface Envelope {
   a: AssistantAction;
@@ -69,6 +70,8 @@ export function verifyAction(
 export interface ConfirmResult {
   reply: string;
   url: string;
+  /** Suggested next steps, shown as chips. */
+  options?: string[];
 }
 
 export async function confirmAction(user: Actor, token: string, channel: Channel): Promise<ConfirmResult> {
@@ -81,7 +84,11 @@ export async function confirmAction(user: Actor, token: string, channel: Channel
   if (action.kind === 'add_expense') {
     if (action.claimId) {
       await addExpenses(action.claimId, user.id, [action.expense], 'web');
-      result = { reply: 'Saved to your draft claim.', url: `${appUrl()}/claims/${action.claimId}` };
+      result = {
+        reply: 'Saved to your draft claim.',
+        url: `${appUrl()}/claims/${action.claimId}`,
+        options: ['Submit it for approval', 'Add another expense'],
+      };
     } else {
       const created = await createClaim(
         user.id,
@@ -89,9 +96,20 @@ export async function confirmAction(user: Actor, token: string, channel: Channel
         { title: action.newClaimTitle ?? 'Expenses', expenses: [action.expense] },
         'web',
       );
-      result = { reply: 'Saved in a new draft claim.', url: created.appUrl };
+      result = {
+        reply: 'Saved in a new draft claim.',
+        url: created.appUrl,
+        options: ['Submit it for approval', 'Add another expense'],
+      };
     }
     summary = `add expense ${action.expense.category} ${action.expense.amount}`;
+  } else if (action.kind === 'submit') {
+    const r = await submitClaim(action.claimId, user.id, 'web');
+    result = {
+      reply: `Submitted for approval${r.approverName ? ` to ${r.approverName}` : ''}.`,
+      url: `${appUrl()}/claims/${action.claimId}`,
+    };
+    summary = 'submit claim';
   } else {
     if (action.approve) {
       await decideClaim(action.claimId, user.id, [], true, action.note, 'web');
@@ -117,7 +135,14 @@ export async function confirmAction(user: Actor, token: string, channel: Channel
     orgId: user.orgId,
     userId: user.id,
     channel,
-    intent: action.kind === 'add_expense' ? 'log_expense' : action.approve ? 'approve_claim' : 'reject_claim',
+    intent:
+      action.kind === 'add_expense'
+        ? 'log_expense'
+        : action.kind === 'submit'
+          ? 'submit_claim'
+          : action.approve
+            ? 'approve_claim'
+            : 'reject_claim',
     outcome: 'confirmed',
     text: summary,
     meta: { nonce, claimId: action.claimId },

@@ -5,7 +5,8 @@ A support and policy desk for expense claims at small Indian companies. Employee
 Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1 (expense claims run from Claude over MCP).
 
 - **Prototype:** https://spendwise-desk.onrender.com (free plan: the first visit after a quiet spell takes a minute or two to wake up)
-- **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 25/25 required checks pass against the live model (Groq gpt-oss + Whisper)
+- **Evals report** (golden dataset, adversarial tests, scores): [`evals/EVALS.md`](evals/EVALS.md) · summary [`evals/RESULTS.md`](evals/RESULTS.md): 25/25 required checks pass against the live model (Groq gpt-oss + Whisper)
+- **Source manifest:** [`SOURCES.md`](SOURCES.md)
 - **Demo logins** (password `demo1234`): `riya@acme.test` (employee), `manager@acme.test` (manager), `admin@acme.test` (admin / finance)
 
 ---
@@ -92,7 +93,7 @@ The model is used only where language understanding is needed. Everything that m
 
 | The model does | Code does |
 |---|---|
-| Works out the intent and fields of a message (*"paanch sau ka lunch kal"* → log_expense, ₹500, MEALS, yesterday) | Validates every field (amount range, real date, not in the future, category exists, claim is the user's draft) and asks for what is missing, one question at a time |
+| Works out the intent and fields of a message (*"paanch sau ka lunch kal"* → log_expense, ₹500, MEALS, yesterday) | Validates every field (amount range, real date, not in the future, category exists, claim is the user's draft, GSTIN format and checksum) and asks for what is missing, one question at a time, including the supplier GSTIN above the policy threshold |
 | Answers a policy question from the retrieved passages | Retrieves the passages; the reviewer rejects a draft that cites a passage it was not given, has more than 3 sentences, states a number that is not in the cited passage, or gives advice |
 | Reads the draft a second time as the reviewer and says whether every fact is in the cited passage | Decides the verdict. The model reviewer can only add a *flag* for the person on the desk; it can never approve a draft or block one. Code blocks; a person approves |
 | Writes the pulse summary, 3 action ideas and the explainer bullets | Groups themes, counts, ids, quotes and the window; enforces 250 words and 6 bullets; keeps only bullets that cite a real passage |
@@ -110,7 +111,8 @@ When the model is unavailable, the system says so instead of guessing. Policy an
 2. The **advice guard** (code) refuses investment, tax-planning and returns requests before the model runs.
 3. The model returns only `{intent, amount, date, merchant, category, claim, note, question}` as strict JSON. Code checks the shape again, retries once, and never acts on a reply that does not fit.
 4. What happens next depends on the intent:
-   - **log_expense:** code checks each field and asks follow-up questions. It then runs the policy checks and shows a **preview card** with flags (e.g. *Over item limit*).
+   - **log_expense:** code checks each field and asks follow-up questions. Above the policy's GSTIN threshold (₹2,000 in the demo) it asks for the **supplier's GSTIN**, read from the words in code (spoken GSTINs come with spaces) and checked against the GSTIN checksum; *"No GSTIN on the bill"* is accepted and the line is flagged for the approver. It then runs the policy checks and shows a **preview card** with flags (e.g. *Over item limit*). After saving, it offers **Submit it for approval**.
+   - **submit_claim:** *"submit my claim"* / *"claim manager ko bhej do"* previews the draft (lines, total, flagged lines) and submits it to the approver only when the person confirms.
    - **policy_question:** goes to the **response desk** (below). If finance has already approved a **canonical answer** for the topic, the employee gets it at once, with its **source link and last-checked date**. Otherwise they hear *"I've drafted an answer… Finance checks every new answer before it is sent"*, and the approved reply appears later under **Your questions**. If nothing matches: *"I couldn't find this… I searched X and Y. I've passed your question to the finance desk."*
    - **claim_status:** answered from the database.
    - **approve_claim / reject_claim** (managers): a preview, and a reason is required to reject.
@@ -178,7 +180,7 @@ The demo week is synthetic (made by `npm run seed`). The questions contain no pe
 
 ## Sources
 
-Public, official sources only. No blogs and no app screenshots. Every passage, with its id, is visible on the **Sources** page (`/sources`).
+Public, official sources only. No blogs and no app screenshots. Every passage, with its id, is listed in the **source manifest** [`SOURCES.md`](SOURCES.md) and on the **Sources** page (`/sources`).
 
 | Source | URL | Last checked | Used for |
 |---|---|---|---|
@@ -205,7 +207,7 @@ createdb spendwise_eval
 EVAL_DATABASE_URL=postgresql://localhost/spendwise_eval npm run eval
 ```
 
-This runs over the assembled system (database, both loops, the HTTP server and an MCP client), writes [`evals/RESULTS.md`](evals/RESULTS.md), [`evals/results/latest.json`](evals/results/latest.json) and [`evals/samples/`](evals/samples), and exits 1 if a required check fails. It also runs in CI. With `GROQ_API_KEY` (or `ANTHROPIC_API_KEY`) set, the model-dependent checks run against the real model, including 8 spoken clips (`evals/audio/`, an Indian English voice) sent through Whisper. Calls are spaced and retried to fit Groq's free tier.
+This runs over the assembled system (database, both loops, the HTTP server and an MCP client), writes the item-by-item report [`evals/EVALS.md`](evals/EVALS.md) (golden dataset, adversarial tests, scores), the source manifest [`SOURCES.md`](SOURCES.md), [`evals/RESULTS.md`](evals/RESULTS.md), [`evals/results/latest.json`](evals/results/latest.json) and [`evals/samples/`](evals/samples), and exits 1 if a required check fails. It also runs in CI. With `GROQ_API_KEY` (or `ANTHROPIC_API_KEY`) set, the model-dependent checks run against the real model, including 8 spoken clips (`evals/audio/`, an Indian English voice) sent through Whisper. Calls are spaced and retried to fit Groq's free tier.
 
 | Check | What it does | Result |
 |---|---|---|

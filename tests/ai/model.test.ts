@@ -166,6 +166,20 @@ describe('groq provider', () => {
     });
   });
 
+  it('falls back to the other model when one hits its daily rate limit', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const calls: GroqChatParams[] = [];
+    setGroqForTests(async (p) => {
+      calls.push(p);
+      if (p.model === 'openai/gpt-oss-20b') throw Object.assign(new Error('Rate limit reached (TPD)'), { status: 429 });
+      return groqReply('{"intent":"log_expense","amount":320}');
+    });
+    const r = await askJson<{ intent: string }>({ purpose: 'intent', system: 's', prompt: 'Ola cab 320', schema });
+    expect(r.value?.intent).toBe('log_expense');
+    expect(calls.map((c) => c.model)).toEqual(['openai/gpt-oss-20b', 'openai/gpt-oss-120b']);
+    vi.restoreAllMocks();
+  });
+
   it('uses the larger model for answers', async () => {
     const calls: GroqChatParams[] = [];
     setGroqForTests(async (p) => {

@@ -34,7 +34,7 @@ export const DEFAULT_GROQ_FAST_MODEL = 'openai/gpt-oss-20b';
 export const DEFAULT_WHISPER_MODEL = 'whisper-large-v3-turbo';
 
 /** Calls that only classify short text use the faster model (and its own quota). */
-const FAST_PURPOSES = new Set(['intent', 'review']);
+const FAST_PURPOSES = new Set(['intent']);
 
 export type Effort = 'low' | 'medium' | 'high';
 export type Provider = 'groq' | 'anthropic';
@@ -142,6 +142,14 @@ export function modelLabel(): string {
   return p === 'groq' ? `Groq ${modelFor('answer')} (intent: ${modelFor('intent')})` : `Claude ${modelFor('answer')}`;
 }
 
+/** The other gpt-oss model, used when one hits its rate limit. */
+function otherGroqModel(model: string): string | null {
+  const main = process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+  const fast = process.env.GROQ_FAST_MODEL || DEFAULT_GROQ_FAST_MODEL;
+  if (main === fast) return null;
+  return model === fast ? main : model === main ? fast : null;
+}
+
 function groq(): Groq {
   groqClient ??= new Groq({ apiKey: process.env.GROQ_API_KEY, maxRetries: Number(process.env.AI_MAX_RETRIES ?? 4) });
   return groqClient;
@@ -213,7 +221,17 @@ async function callGroq(opts: AskOptions, system: string, prompt: string): Promi
         }
       : {}),
   };
-  const r = await create(params);
+  let r: GroqChatReply;
+  try {
+    r = await create(params);
+  } catch (err) {
+    // Groq's free tier caps tokens per model per day. When one model is out,
+    // the other gpt-oss model answers instead of the assistant going down.
+    const other = otherGroqModel(params.model);
+    if ((err as { status?: number })?.status !== 429 || !other) throw err;
+    logError(`[ai:${opts.purpose}]`, new Error(`${params.model} is rate-limited; using ${other} instead`));
+    r = await create({ ...params, model: other });
+  }
   const choice = r.choices[0];
   return {
     text: choice?.message.content ?? '',

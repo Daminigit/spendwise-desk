@@ -25,6 +25,8 @@
  */
 
 import { mkdirSync, writeFileSync } from 'fs';
+import { writeEvalsReport } from './report.js';
+import { writeSourcesManifest } from './sources-manifest.js';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -647,7 +649,7 @@ async function main() {
     'Advice and return-figure requests are refused (rephrased, repeated, both channels)',
     advOk === refusals.length,
     `${advOk}/${refusals.length} refused`,
-    refusals.filter((r) => !r.refused),
+    refusals,
   );
 
   // Weekly loop side: refused requests never become pulse themes or quotes.
@@ -673,6 +675,7 @@ async function main() {
     'Recommendation / return-figure text in model output is blocked',
     badOutputs.every((o) => guardV2.violatesScope(o)),
     `${badOutputs.filter((o) => guardV2.violatesScope(o)).length}/${badOutputs.length}`,
+    badOutputs,
   );
 
   // 3d. PAN, account and phone numbers in both loops, then scan storage and logs.
@@ -1002,6 +1005,14 @@ async function main() {
     checks,
   };
   writeFileSync(path.join(here, 'results', 'latest.json'), JSON.stringify(result, null, 2));
+  // The full report (golden dataset, adversarial tests, scores) and the source manifest.
+  writeEvalsReport(here, result);
+  writeSourcesManifest(
+    path.join(here, '..', 'SOURCES.md'),
+    (await loadCorpus(orgId)).sources,
+    process.env.APP_URL!,
+    new Date().toISOString().slice(0, 10),
+  );
 
   const groups: [Group, string][] = [
     ['feasibility', '1. Feasibility'],
@@ -1017,6 +1028,8 @@ async function main() {
     `Run ${result.ranAt.slice(0, 16).replace('T', ' ')} UTC · model: ${result.model ?? 'none (no AI key set; model-dependent checks skipped)'}`,
     '',
     `**Required checks: ${result.summary.passed}/${result.summary.required} passed**${result.summary.skipped ? ` · ${result.summary.skipped} skipped` : ''}`,
+    '',
+    'Item-by-item golden dataset and adversarial tests: [EVALS.md](EVALS.md). Sources: [../SOURCES.md](../SOURCES.md).',
     '',
     ...groups.flatMap(([g, title]) => {
       const cs = checks.filter((c) => c.group === g);
@@ -1066,7 +1079,7 @@ async function main() {
   out(
     `\nRequired: ${result.summary.passed}/${result.summary.required} passed, ${result.summary.failed} failed, ${result.summary.skipped} skipped.`,
   );
-  out('Wrote evals/RESULTS.md, evals/results/latest.json and evals/samples/.');
+  out('Wrote evals/RESULTS.md, evals/EVALS.md, evals/results/latest.json, evals/samples/ and SOURCES.md.');
   process.exit(failed.length ? 1 : 0);
 }
 

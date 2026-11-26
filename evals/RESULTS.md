@@ -4,6 +4,8 @@ Run 2026-11-26 17:15 UTC · model: Groq openai/gpt-oss-120b (intent: openai/gpt-
 
 **Required checks: 25/25 passed**
 
+Item-by-item golden dataset and adversarial tests: [EVALS.md](EVALS.md). Sources: [../SOURCES.md](../SOURCES.md).
+
 ## 1. Feasibility
 
 | Result | Check | Detail |

@@ -266,6 +266,7 @@
       a.href = r.url;
       a.textContent = 'Open the claim';
       b.appendChild(a);
+      renderOptions(r.options);
       speak(r.reply);
     } catch (err) {
       btn.disabled = false;

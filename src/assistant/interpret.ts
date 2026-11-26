@@ -24,6 +24,7 @@ import {
   type ExpenseInputRaw,
 } from '../domain/claims.js';
 import { getPolicy } from '../domain/org.js';
+import { validateGSTIN } from '../domain/gstin.js';
 import { formatINR, toPaise } from '../domain/money.js';
 import type { Category, PaymentMethod, User } from '../db/schema.js';
 
@@ -46,6 +47,7 @@ export const INTENTS = [
   'claim_status',
   'approve_claim',
   'reject_claim',
+  'submit_claim',
   'advice_request',
   'other',
 ] as const;
@@ -61,11 +63,16 @@ export interface ExpenseSlots {
   description: string | null;
   claim: string | null; // claim id, or 'new'
   payment_method: PaymentMethod | null;
+  /** Supplier GSTIN from the bill; NO_GSTIN when the person says the bill has none. */
+  gstin?: string | null;
 }
+
+/** Marks "the bill has no GSTIN" (the line is then flagged for the approver). */
+export const NO_GSTIN = 'NONE';
 
 /** Conversation state the browser sends back with the next message. */
 export interface Pending {
-  intent: 'log_expense' | 'approve_claim' | 'reject_claim';
+  intent: 'log_expense' | 'approve_claim' | 'reject_claim' | 'submit_claim';
   expense?: ExpenseSlots;
   claimId?: string | null;
   note?: string | null;
@@ -225,7 +232,7 @@ export async function interpret(input: InterpretInput): Promise<AssistantReply> 
       reply = blank('advice_request', 'refused', ADVICE_REFUSAL);
       break;
     case 'log_expense':
-      reply = await handleLogExpense(user, ctx, extraction, input.pending ?? null, today);
+      reply = await handleLogExpense(user, ctx, extraction, input.pending ?? null, today, text);
       break;
     case 'claim_status':
       reply = await handleStatus(user, ctx, extraction);
@@ -233,6 +240,9 @@ export async function interpret(input: InterpretInput): Promise<AssistantReply> 
     case 'approve_claim':
     case 'reject_claim':
       reply = await handleDecision(user, ctx, intent, extraction, input.pending ?? null);
+      break;
+    case 'submit_claim':
+      reply = handleSubmit(user, ctx, extraction, input.pending ?? null);
       break;
     case 'policy_question': {
       // Through the response desk: three agents, orchestrator, reviewer, then a person.
@@ -275,6 +285,8 @@ export async function interpret(input: InterpretInput): Promise<AssistantReply> 
 
 interface Ctx {
   categories: Category[];
+  /** Bills above this (paise) need the supplier's GSTIN. */
+  gstinRequiredAboveMinor: number;
   drafts: ClaimSummary[];
   myClaims: ClaimSummary[];
   approvals: ClaimSummary[];
@@ -283,7 +295,7 @@ interface Ctx {
 }
 
 async function loadContext(user: Actor): Promise<Ctx> {
-  const { categories } = await getPolicy(user.orgId);
+  const { policy, categories } = await getPolicy(user.orgId);
   const myClaims = (await listClaims(user.id)).slice(0, 15);
   const approvals = user.role === 'employee' ? [] : (await listPendingApprovals(user.id)).slice(0, 15);
   const refs = new Map<string, string>();
@@ -292,6 +304,7 @@ async function loadContext(user: Actor): Promise<Ctx> {
   });
   return {
     categories: categories.filter((c) => c.active),
+    gstinRequiredAboveMinor: policy.gstinRequiredAboveMinor,
     drafts: myClaims.filter((c) => c.status === 'draft'),
     myClaims,
     approvals,
@@ -321,6 +334,7 @@ Intents:
 - policy_question: a question about the company's expense rules, limits, GST or receipts.
 - claim_status: asks about their own claims, or (manager/admin) what is waiting for approval.
 - approve_claim / reject_claim: a manager or admin deciding a claim in the approval queue.
+- submit_claim: the user wants to send their own draft claim for approval ("submit it", "send my claim to my manager", "claim bhej do").
 - advice_request: asks for investment, tax-planning, buy/sell, or returns advice. Always this intent for such requests, however phrased.
 - other: anything else.
 
@@ -377,6 +391,7 @@ async function handleLogExpense(
   ex: Extraction,
   pending: Pending | null,
   today: string,
+  text = '',
 ): Promise<Omit<AssistantReply, 'redacted'>> {
   const prev = pending?.intent === 'log_expense' ? (pending.expense ?? EMPTY_SLOTS) : EMPTY_SLOTS;
   const problems: string[] = [];
@@ -405,6 +420,17 @@ async function handleLogExpense(
   if (ex.merchant?.trim()) slots.merchant = ex.merchant.trim().slice(0, 200);
   if (ex.description?.trim()) slots.description = ex.description.trim().slice(0, 500);
   if (ex.payment_method && PAYMENT_METHODS.includes(ex.payment_method)) slots.payment_method = ex.payment_method;
+
+  // Supplier GSTIN, read from the words in code (spoken GSTINs come with spaces).
+  const needsGstin = (amount: number | null) => amount !== null && toPaise(amount) > ctx.gstinRequiredAboveMinor;
+  const wasAskingGstin = needsGstin(prev.amount) && prev.merchant !== null && !prev.gstin && pending?.intent === 'log_expense';
+  const found = findGstin(text);
+  if (found.valid) slots.gstin = found.valid;
+  else if (found.invalid) {
+    problems.push(
+      `${found.invalid} doesn't look like a valid GSTIN (15 characters, and the last one is a check digit). Please read it again from the bill.`,
+    );
+  } else if (wasAskingGstin && NO_GSTIN_WORDS.test(text)) slots.gstin = NO_GSTIN;
   if (ex.claim_ref) {
     if (ex.claim_ref.toLowerCase() === 'new') slots.claim = 'new';
     else {
@@ -431,6 +457,13 @@ async function handleLogExpense(
   }
   if (slots.date === null) return ask(pendingNext, `${prefix}Which date was it?`, ['Today', 'Yesterday']);
   if (slots.merchant === null) return ask(pendingNext, `${prefix}Who was it paid to?`);
+  if (needsGstin(slots.amount) && !slots.gstin) {
+    return ask(
+      pendingNext,
+      `${prefix}Bills above ${formatINR(ctx.gstinRequiredAboveMinor)} need the supplier's GSTIN. What is the GSTIN on the ${slots.merchant} bill?`,
+      ['No GSTIN on the bill'],
+    );
+  }
   if (slots.claim === null) {
     return ask(pendingNext, `${prefix}Which claim should I add it to?`, [
       ...ctx.drafts.map((c) => c.title),
@@ -446,6 +479,7 @@ async function handleLogExpense(
     description: slots.description ?? '',
     amount: slots.amount,
     payment_method: slots.payment_method ?? 'personal_card',
+    ...(slots.gstin && slots.gstin !== NO_GSTIN ? { gstin: slots.gstin } : {}),
   };
   const claimId = slots.claim === 'new' ? null : slots.claim;
   const { flags, category } = await previewExpenseFlags(user.id, user.orgId, claimId, raw);
@@ -480,6 +514,9 @@ async function handleLogExpense(
         { label: 'Category', value: category.name },
         { label: 'Date', value: prettyDate(raw.date) },
         { label: 'Paid to', value: raw.merchant },
+        ...(needsGstin(raw.amount) || raw.gstin
+          ? [{ label: 'Supplier GSTIN', value: raw.gstin ?? 'Not on the bill' }]
+          : []),
         ...(raw.description ? [{ label: 'For', value: raw.description }] : []),
         { label: 'Claim', value: claimId ? claimTitle : `New: ${claimTitle}` },
       ],
@@ -596,6 +633,75 @@ async function handleDecision(
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// submit_claim: send the person's own draft for approval (preview, then confirm)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function handleSubmit(user: Actor, ctx: Ctx, ex: Extraction, pending: Pending | null): Omit<AssistantReply, 'redacted'> {
+  const refId = ex.claim_ref ? ctx.refs.get(ex.claim_ref.toUpperCase()) : undefined;
+  const byRef = refId ? ctx.myClaims.find((c) => c.id === refId) : undefined;
+  if (byRef && byRef.status !== 'draft') {
+    return blank('submit_claim', 'needs_info', `"${byRef.title}" is already ${STATUS_WORDS[byRef.status] ?? byRef.status}.`);
+  }
+  const prevId = pending?.intent === 'submit_claim' ? pending.claimId : null;
+  const claim =
+    (byRef && ctx.drafts.find((c) => c.id === byRef.id)) ??
+    ctx.drafts.find((c) => c.id === prevId) ??
+    (ctx.drafts.length === 1 ? ctx.drafts[0] : undefined);
+
+  if (!ctx.drafts.length) return blank('submit_claim', 'needs_info', 'You have no draft claims to submit.');
+  if (!claim) {
+    return ask({ intent: 'submit_claim', claimId: null }, 'Which claim should I submit?', ctx.drafts.map((c) => c.title));
+  }
+  if (claim.expenseCount === 0) {
+    return blank('submit_claim', 'needs_info', `"${claim.title}" has no expenses yet. Add one first.`);
+  }
+  const action: AssistantAction = { kind: 'submit', claimId: claim.id };
+  const flags = claim.flagCount;
+  return {
+    intent: 'submit_claim',
+    outcome: 'previewed',
+    reply:
+      `I'll submit "${claim.title}" (${claim.expenseCount} expense${claim.expenseCount === 1 ? '' : 's'}, ${formatINR(claim.totalMinor)}) to your approver.` +
+      (flags ? ` ${flags} line${flags === 1 ? ' has' : 's have'} policy flags the approver will see.` : '') +
+      ' Shall I send it?',
+    pending: { intent: 'submit_claim', claimId: claim.id },
+    options: [],
+    policy: null,
+    preview: {
+      title: 'Submit for approval',
+      lines: [
+        { label: 'Claim', value: claim.title },
+        { label: 'Expenses', value: String(claim.expenseCount) },
+        { label: 'Total', value: formatINR(claim.totalMinor) },
+        { label: 'Lines with flags', value: String(flags) },
+      ],
+      flags: [],
+      confirmLabel: 'Submit for approval',
+      token: signAction(action, user.id),
+    },
+  };
+}
+
+/** "No GSTIN", "nahi hai", "there isn't one", "skip"… said when asked for the GSTIN. */
+const NO_GSTIN_WORDS =
+  /\b(no|none|nahi|nahin|nai|not (on|there|available|given|printed)|don'?t have|doesn'?t have|isn'?t|without|skip|missing)\b/i;
+
+/**
+ * A GSTIN in the message, if any. Speech-to-text writes it with spaces or
+ * hyphens ("29 ABCDE 1234 F 1 Z 5"), so separators are ignored. `invalid` is
+ * a 15-character attempt that fails the format or checksum.
+ */
+export function findGstin(text: string): { valid?: string; invalid?: string } {
+  const collapsed = text.toUpperCase().replace(/[\s,.-]+/g, '');
+  const strict = collapsed.match(/\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]/g) ?? [];
+  const ok = strict.find((g) => validateGSTIN(g));
+  if (ok) return { valid: ok };
+  if (strict.length) return { invalid: strict[0] };
+  const loose = /\b(gstin|gst number|gst no)\b/i.test(text) ? collapsed.match(/\d{2}[A-Z0-9]{13}/) : null;
+  return loose ? { invalid: loose[0] } : {};
+}
 
 function blank(
   intent: Intent,

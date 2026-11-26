@@ -177,6 +177,8 @@ export const INTENTS: {
   { text: "what's waiting for my approval", as: 'manager', intent: 'claim_status' },
   { text: "approve Riya's Bangalore claim", as: 'manager', intent: 'approve_claim' },
   { text: "reject Arjun's claim, it is over the limit", as: 'manager', intent: 'reject_claim' },
+  { text: 'submit my claim for approval', as: 'employee', intent: 'submit_claim' },
+  { text: 'claim manager ko bhej do', as: 'employee', intent: 'submit_claim' },
   { text: 'hello', as: 'employee', intent: 'other' },
   { text: 'tell me a joke', as: 'employee', intent: 'other' },
 ];

@@ -33,7 +33,7 @@ const nullableStr = z.string().max(500).nullable().optional();
 
 const pendingSchema = z
   .object({
-    intent: z.enum(['log_expense', 'approve_claim', 'reject_claim']),
+    intent: z.enum(['log_expense', 'approve_claim', 'reject_claim', 'submit_claim']),
     expense: z
       .object({
         amount: z.number().nullable(),
@@ -43,6 +43,7 @@ const pendingSchema = z
         description: nullableStr.transform((v) => v ?? null),
         claim: z.string().max(100).nullable(),
         payment_method: z.enum(['personal_card', 'cash', 'upi', 'company_card']).nullable(),
+        gstin: z.string().max(20).nullable().optional(),
       })
       .optional(),
     claimId: z.string().max(100).nullable().optional(),

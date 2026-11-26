@@ -136,11 +136,71 @@ describe.skipIf(!hasTestDb)('assistant', () => {
     expect(await claimCount(org.emp.id)).toBe(before + 1);
   });
 
+  it('asks for the supplier GSTIN above the policy threshold, reads a spoken one, then offers to submit', async () => {
+    const s = await loginAs(server, org.otherEmp);
+    fakeClaude((text) =>
+      text.includes('We are in the middle')
+        ? { intent: 'log_expense' }
+        : text.includes('submit')
+          ? { intent: 'submit_claim' }
+          : { intent: 'log_expense', amount: 4800, merchant: 'Hotel Lakeview', category: 'LODGE', date },
+    );
+    const r1 = await msg(s, { text: 'hotel 4800 at Lakeview', channel: 'voice' });
+    expect(r1.outcome).toBe('needs_info');
+    expect(r1.reply).toMatch(/Bills above ₹2,000.00 need the supplier's GSTIN/);
+    expect(r1.options).toEqual(['No GSTIN on the bill']);
+
+    // Whisper writes it with spaces; a wrong check digit is caught first.
+    const bad = await msg(s, { text: '27 AAPFU 0939 F 1 Z X', channel: 'voice', pending: r1.pending });
+    expect(bad.outcome).toBe('needs_info');
+    expect(bad.reply).toMatch(/doesn't look like a valid GSTIN/);
+
+    const r2 = await msg(s, { text: '27 AAPFU 0939 F 1 Z V', channel: 'voice', pending: bad.pending });
+    expect(r2.outcome).toBe('previewed');
+    expect(r2.preview.lines).toContainEqual({ label: 'Supplier GSTIN', value: '27AAPFU0939F1ZV' });
+    expect(r2.preview.flags).not.toContain('Missing GSTIN');
+
+    const c = (await (await s.fetch('/assistant/confirm', json({ token: r2.preview.token, channel: 'voice' }))).json()) as { options?: string[] };
+    expect(c.options).toContain('Submit it for approval');
+    const [line] = await db.execute(sql`select e.gstin from expenses e join claims c on c.id = e.claim_id
+      where c.user_id = ${org.otherEmp.id} order by e.created_at desc limit 1`);
+    expect((line as { gstin: string }).gstin).toBe('27AAPFU0939F1ZV');
+
+    // Submit by voice: preview, nothing changes until confirm, then submitted.
+    const sub = await msg(s, { text: 'submit it for approval', channel: 'voice' });
+    expect(sub.intent).toBe('submit_claim');
+    expect(sub.outcome).toBe('previewed');
+    expect(sub.preview.confirmLabel).toBe('Submit for approval');
+    const draftBefore = await db.select().from(claims).where(eq(claims.userId, org.otherEmp.id));
+    expect(draftBefore.every((x) => x.status === 'draft')).toBe(true);
+    const done = (await (await s.fetch('/assistant/confirm', json({ token: sub.preview.token, channel: 'voice' }))).json()) as { reply: string };
+    expect(done.reply).toMatch(/Submitted for approval to Omar Othermanager/);
+    const after = await db.select().from(claims).where(eq(claims.userId, org.otherEmp.id));
+    expect(after.some((x) => x.status === 'submitted')).toBe(true);
+  });
+
+  it('accepts "no GSTIN" and flags the line for the approver', async () => {
+    const s = await loginAs(server, org.otherEmp);
+    fakeClaude((text) =>
+      text.includes('We are in the middle')
+        ? { intent: 'log_expense' }
+        : { intent: 'log_expense', amount: 3000, merchant: 'Kamat Hotel', category: 'LODGE', date, claim_ref: 'new' },
+    );
+    const r1 = await msg(s, { text: 'hotel 3000 Kamat', channel: 'text' });
+    expect(r1.reply).toMatch(/GSTIN/);
+    const r2 = await msg(s, { text: 'No GSTIN on the bill', channel: 'text', pending: r1.pending });
+    expect(r2.outcome).toBe('previewed');
+    expect(r2.preview.lines).toContainEqual({ label: 'Supplier GSTIN', value: 'Not on the bill' });
+    expect(r2.preview.flags).toContain('Missing GSTIN');
+  });
+
   it('shows policy flags from the code checks in the preview', async () => {
     const s = await loginAs(server, org.emp2);
     fakeClaude(() => ({ intent: 'log_expense', amount: 2400, merchant: 'Taj', category: 'MEALS', date }));
-    const r = await msg(s, { text: 'dinner at taj 2400', channel: 'text' });
+    // A GSTIN said in the same breath is picked up, so no follow-up question is needed.
+    const r = await msg(s, { text: 'dinner at taj 2400, GSTIN 27AAPFU0939F1ZV', channel: 'text' });
     expect(r.preview.flags).toContain('Over item limit');
+    expect(r.preview.lines).toContainEqual({ label: 'Supplier GSTIN', value: '27AAPFU0939F1ZV' });
   });
 
   it('rejects an edited confirmation token', async () => {
