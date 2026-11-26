@@ -16,6 +16,9 @@ describe('advice guard (code, not prompt)', () => {
     'should I sell my crypto',
     'how is the stock market doing',
     'investment advice please',
+    'Should I put my reimbursement into a mutual fund?',
+    'paisa SIP mein daalun?',
+    'is bitcoin a good idea',
   ])('refuses: %s', (text) => {
     expect(isAdviceRequest(text)).toBe(true);
   });

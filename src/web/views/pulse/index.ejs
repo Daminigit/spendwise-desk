@@ -1,0 +1,127 @@
+<div class="page-head">
+  <h1>Weekly pulse</h1>
+  <form method="post" action="/pulse/run">
+    <button class="btn btn-primary" type="submit">Run weekly loop now</button>
+  </form>
+</div>
+<%- include('../partials/pulse-nav') %>
+
+<% if (!run) { %>
+  <div class="card empty">
+    <h2>No runs yet</h2>
+    <p class="muted">The loop reads the last 7 days of assistant questions, policy flags and rejections, groups them into themes, drafts the pulse and an explainer, and waits for your approval before writing anything.</p>
+  </div>
+<% } else { %>
+  <p class="muted">
+    Window <strong><%= stats.window %></strong> (<%= run.windowStart %> to <%= run.windowEnd %>, India time) ·
+    run <%= run.trigger === 'schedule' ? 'on schedule' : 'manually' %> on <%= new Date(run.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) %>
+  </p>
+
+  <div class="pulse-stats">
+    <div class="card stat"><span class="stat-n"><%= stats.questions %></span><span class="muted small">policy questions</span></div>
+    <div class="card stat"><span class="stat-n"><%= stats.notCovered %></span><span class="muted small">not covered</span></div>
+    <div class="card stat"><span class="stat-n"><%= stats.canonicalReused %></span><span class="muted small">answered from canonical</span></div>
+    <div class="card stat"><span class="stat-n"><%= stats.flaggedLines %></span><span class="muted small">flagged lines</span></div>
+    <div class="card stat"><span class="stat-n"><%= stats.rejectedLines %></span><span class="muted small">rejected lines</span></div>
+    <div class="card stat"><span class="stat-n"><%= stats.adviceRefused %></span><span class="muted small">advice requests refused</span></div>
+  </div>
+
+  <section class="section">
+    <h2>Themes <span class="muted small">(max 5, top 3 in the pulse; counts cover <%= stats.window %>)</span></h2>
+    <% if (!themes.length) { %><p class="muted">Nothing to group this week.</p><% } %>
+    <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>Theme</th><th>Questions</th><th>Flagged lines</th><th>Rejected</th><th>Traces to</th></tr></thead>
+      <tbody>
+      <% themes.forEach((t, i) => { %>
+        <tr class="<%= i < 3 ? 'top-theme' : '' %>">
+          <td><%= i + 1 %></td>
+          <td>
+            <strong><%= t.label %></strong>
+            <% if (t.repeated) { %><span class="badge flag">asked <%= t.questions %>× this week</span><% } %>
+            <% if (t.passageId) { %><div class="small"><a href="/sources#<%= t.passageId %>">source passage <%= t.passageId %></a></div><% } %>
+            <% t.quotes.forEach(q => { %><div class="small muted quote">“<%= q.text %>” <span class="mono">(<%= q.id.slice(0, 8) %>)</span></div><% }) %>
+          </td>
+          <td><%= t.questions %></td>
+          <td><%= t.flags %></td>
+          <td><%= t.rejections %></td>
+          <td>
+            <details class="small">
+              <summary><%= t.eventIds.length %> question ids, <%= t.expenseIds.length %> expense ids</summary>
+              <div class="mono ids"><% t.eventIds.forEach(id => { %>q:<%= id.slice(0, 8) %> <% }) %><% t.expenseIds.forEach(id => { %>e:<%= id.slice(0, 8) %> <% }) %></div>
+            </details>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Pulse draft <span class="muted small"><%= pulse.wordCount %> / 250 words<%= pulse.aiWritten ? '' : ' · summary written from a template (AI unavailable)' %></span></h2>
+    <pre class="card pulse-text"><%= pulse.text %></pre>
+  </section>
+
+  <% if (explainer) { %>
+    <section class="section">
+      <h2>Explainer draft <span class="muted small"><%= explainer.bullets.length %> / 6 bullets · last checked <%= explainer.lastChecked %></span></h2>
+      <div class="card">
+        <h3><%= explainer.title %></h3>
+        <ul>
+          <% explainer.bullets.forEach(b => { %><li><%= b.text %> <a class="small" href="/sources#<%= b.passageId %>">[<%= b.passageId %>]</a></li><% }) %>
+        </ul>
+        <p class="small">Sources:
+          <% explainer.sources.forEach((s, i) => { %><%= i ? ' · ' : '' %><a href="<%= s.url %>" target="_blank" rel="noopener"><%= s.title %></a> (checked <%= s.lastChecked %>)<% }) %>
+        </p>
+        <% if (explainer.alreadyCanonical) { %><p class="small muted">An approved canonical answer already exists for this topic, so no publish action was created.</p><% } %>
+      </div>
+    </section>
+  <% } %>
+
+  <section class="section" id="approvals">
+    <h2>Approvals</h2>
+    <p class="muted">Each action below lists exactly what will be written and where. Approving one does not approve the others.</p>
+    <% actions.forEach(a => { const p = a.payload; %>
+      <div class="card approval approval-<%= a.status %>">
+        <div class="approval-head">
+          <strong><%= a.kind === 'append_doc' ? 'Append to Weekly Log' : a.kind === 'email_draft' ? 'Save email draft' : 'Publish canonical answer' %></strong>
+          <span class="badge status-<%= a.status %>"><%= a.status %></span>
+          <% if (a.edited) { %><span class="badge">edited</span><% } %>
+        </div>
+        <p class="small"><strong>Where:</strong> <%= a.target %></p>
+        <% if (a.kind === 'email_draft') { %><p class="small"><strong>To:</strong> <%= p.to %> · <strong>Subject:</strong> <%= p.subject %></p><% } %>
+        <% if (a.kind === 'publish_explainer') { %>
+          <p class="small"><strong>What:</strong> “<%= p.title %>”, <%= p.bullets.length %> bullets, sources: <%= p.sources.map(s => s.title).join(' + ') %></p>
+        <% } else if (a.status === 'pending') { %>
+          <form method="post" action="/pulse/actions/<%= a.id %>/edit" class="form">
+            <% if (a.kind === 'email_draft') { %><label class="small">Subject <input type="text" name="subject" value="<%= p.subject %>" maxlength="200"></label><% } %>
+            <label class="small">Exact text that will be written
+              <textarea name="body" rows="10" maxlength="8000"><%= p.body %></textarea>
+            </label>
+            <button class="btn btn-sm" type="submit">Save edit</button>
+          </form>
+        <% } else { %>
+          <details class="small"><summary>Text</summary><pre class="pulse-text"><%= p.body %></pre></details>
+        <% } %>
+        <% if (a.status === 'pending') { %>
+          <div class="preview-actions">
+            <form method="post" action="/pulse/actions/<%= a.id %>/approve"><button class="btn btn-primary" type="submit">Approve and write</button></form>
+            <form method="post" action="/pulse/actions/<%= a.id %>/reject"><button class="btn" type="submit">Reject</button></form>
+          </div>
+        <% } else { %>
+          <p class="small muted"><%= a.status === 'approved' ? 'Written' : 'Rejected' %> <%= a.decidedAt ? new Date(a.decidedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '' %>.</p>
+        <% } %>
+      </div>
+    <% }) %>
+  </section>
+<% } %>
+
+<% if (runs.length > 1) { %>
+  <section class="section">
+    <h2>Earlier runs</h2>
+    <ul>
+      <% runs.forEach(r => { %><li><a href="/pulse/runs/<%= r.id %>"><%= r.windowStart %> to <%= r.windowEnd %></a> <span class="muted small">(<%= r.trigger %>)</span></li><% }) %>
+    </ul>
+  </section>
+<% } %>

@@ -1,0 +1,27 @@
+<div class="page-head"><h1>Weekly pulse</h1></div>
+<%- include('../partials/pulse-nav') %>
+
+<section class="section">
+  <h2>Weekly Log</h2>
+  <p class="muted">Entries appear here only after an admin approves the "Append to Weekly Log" action.</p>
+  <% if (!docs.length) { %><p class="muted">No entries yet.</p><% } %>
+  <% docs.forEach(d => { %>
+    <article class="card section">
+      <h3><%= d.title %></h3>
+      <p class="small muted">Appended <%= new Date(d.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) %></p>
+      <pre class="pulse-text"><%= d.body %></pre>
+    </article>
+  <% }) %>
+</section>
+
+<section class="section">
+  <h2>Email drafts</h2>
+  <p class="muted">Drafts only: Spendwise never sends these. Copy one into your email client to send it.</p>
+  <% if (!emails.length) { %><p class="muted">No drafts yet.</p><% } %>
+  <% emails.forEach(e => { %>
+    <article class="card section">
+      <p class="small"><strong>To:</strong> <%= e.meta && e.meta.to %> · <strong>Subject:</strong> <%= e.title %></p>
+      <pre class="pulse-text"><%= e.body %></pre>
+    </article>
+  <% }) %>
+</section>

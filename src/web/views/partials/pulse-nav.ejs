@@ -1,0 +1,9 @@
+<nav class="tabs" aria-label="Pulse">
+  <% [
+       { href: '/pulse', label: 'This week', match: (p) => p === '/pulse' || p.startsWith('/pulse/runs') },
+       { href: '/pulse/log', label: 'Weekly log & email drafts', match: (p) => p === '/pulse/log' },
+       { href: '/pulse/canonical', label: 'Canonical answers', match: (p) => p === '/pulse/canonical' },
+     ].forEach(t => { const on = t.match(currentPath); %>
+    <a href="<%= t.href %>" class="<%= on ? 'active' : '' %>" <%- on ? 'aria-current="page"' : '' %>><%= t.label %></a>
+  <% }) %>
+</nav>

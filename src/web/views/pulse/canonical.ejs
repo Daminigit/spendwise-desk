@@ -1,0 +1,17 @@
+<div class="page-head"><h1>Weekly pulse</h1></div>
+<%- include('../partials/pulse-nav') %>
+
+<p class="muted">When a policy question matches one of these topics, the assistant replies with the approved text below instead of drafting a fresh answer.</p>
+<% if (!answers.length) { %><div class="card empty"><p class="muted">No canonical answers yet. Approve an explainer on the pulse page to publish one.</p></div><% } %>
+<% answers.forEach(a => { %>
+  <article class="card section <%= a.active ? '' : 'retired' %>">
+    <div class="approval-head">
+      <h3><%= a.title %></h3>
+      <span class="badge <%= a.active ? 'status-approved' : '' %>"><%= a.active ? 'active' : 'retired' %></span>
+    </div>
+    <p class="small muted">Topic <a href="/sources#<%= a.topic %>"><%= a.topic %></a> · reused <%= a.timesReused %> time<%= a.timesReused === 1 ? '' : 's' %> · last checked <%= a.lastChecked %></p>
+    <ul><% a.bullets.forEach(b => { %><li><%= b.text %> <a class="small" href="/sources#<%= b.passageId %>">[<%= b.passageId %>]</a></li><% }) %></ul>
+    <p class="small">Sources: <% a.sources.forEach((s, i) => { %><%= i ? ' · ' : '' %><a href="<%= s.url %>" target="_blank" rel="noopener"><%= s.title %></a><% }) %></p>
+    <% if (a.active) { %><form method="post" action="/pulse/canonical/<%= a.id %>/retire"><button class="btn btn-sm" type="submit">Retire</button></form><% } %>
+  </article>
+<% }) %>

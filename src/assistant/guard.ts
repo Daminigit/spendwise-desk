@@ -17,6 +17,8 @@ const STRONG_ADVICE: RegExp[] = [
   /\b(which|best|good|top|recommend(ed)?|suggest(ed)?)\b.{0,25}\b(stocks?|shares?|mutual funds?|sip|funds?|investments?|portfolio|crypto|insurance plans?|tax[- ]saving)\b/i,
   /\b(investment|financial|tax[- ]planning|tax[- ]saving|wealth) (advice|tips|plan|strategy)\b/i,
   /\bhow (can|do|should) i (save|reduce|avoid) (my )?(income )?tax\b/i,
+  // Naming an investment product at all is out of scope for an expense assistant.
+  /\b(mutual funds?|sips?|crypto(currency)?|bitcoin|ipos?|etfs?|demat|fixed deposits?|ppf|elss|nps|stocks?|equity|equities)\b/i,
 ];
 
 /** Return / market talk: refused unless the message is clearly about an expense. */

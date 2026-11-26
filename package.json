@@ -19,7 +19,9 @@
     "migrate:prod": "node dist/db/migrate.js",
     "seed:prod": "node dist/db/seed.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
-    "test:integration": "vitest run tests/integration"
+    "test:integration": "vitest run tests/integration",
+    "pulse": "tsx src/pulse/cli.ts",
+    "pulse:prod": "node dist/pulse/cli.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",

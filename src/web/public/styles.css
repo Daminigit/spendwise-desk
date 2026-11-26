@@ -264,3 +264,20 @@ h1 .badge { font-size: 0.8rem; }
 .source-card h2 { margin-top: 0; }
 .source-passages dt { font-weight: 600; margin-top: 0.6rem; }
 .source-passages dd { margin: 0.2rem 0 0; }
+
+/* ── Weekly pulse ──────────────────────────────────────────────────────── */
+.pulse-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+.stat { display: flex; flex-direction: column; gap: 0.15rem; }
+.stat-n { font-size: 1.6rem; font-weight: 700; }
+.top-theme td:first-child { font-weight: 700; color: var(--primary); }
+.quote { margin-top: 0.25rem; }
+.ids { word-break: break-all; margin-top: 0.3rem; }
+.mono { font-family: var(--mono); }
+.pulse-text { white-space: pre-wrap; font-family: var(--font); line-height: 1.5; margin: 0; }
+.approval { margin-bottom: 0.75rem; }
+.approval-head { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.approval-head h3 { margin: 0; }
+.approval-approved { border-color: var(--ok); }
+.approval-rejected { opacity: 0.7; }
+.retired { opacity: 0.6; }
+.preview-actions form { display: inline; }

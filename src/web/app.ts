@@ -23,6 +23,7 @@ import { uploadRouter } from './routes/upload.js';
 import { receiptsRouter } from './routes/receipts.js';
 import { assistantRouter } from './routes/assistant.js';
 import { sourcesRouter } from './routes/sources.js';
+import { pulseRouter } from './routes/pulse.js';
 import { assertStorageConfig } from '../storage/index.js';
 import { logError } from '../log.js';
 
@@ -73,7 +74,8 @@ export function createApp() {
   app.engine('ejs', layoutEngine);
   app.set('view engine', 'ejs');
   app.set('views', VIEWS_DIR);
-  Object.assign(app.locals, viewHelpers, { appName: 'Spendwise' });
+  // assetVersion busts browser caches of /public files on every deploy (they are cached for 1h).
+  Object.assign(app.locals, viewHelpers, { appName: 'Spendwise', assetVersion: Date.now().toString(36) });
 
   // Health check (no session / DB work)
   app.get('/healthz', (_req, res) => {
@@ -114,6 +116,7 @@ export function createApp() {
   app.use(receiptsRouter);
   app.use(assistantRouter);
   app.use(sourcesRouter);
+  app.use(pulseRouter);
 
   // 404
   app.use((req, res) => {

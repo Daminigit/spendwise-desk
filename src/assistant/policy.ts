@@ -17,6 +17,7 @@ import { askJson, AiUnavailableError } from '../ai/claude.js';
 import { loadCorpus, type Passage } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';
 import { violatesScope } from './guard.js';
+import { findCanonical, markReused } from '../pulse/canonical.js';
 import type { Actor } from './interpret.js';
 
 export interface PolicySource {
@@ -32,6 +33,10 @@ export interface PolicyAnswer {
   sources: PolicySource[];
   /** Source titles searched, and the search terms used (shown when not covered). */
   searched: string[];
+  /** Grouping key for the weekly pulse: the best-matching passage, or the uncovered terms. */
+  topic: string;
+  /** Set when an approved canonical answer was reused instead of drafting a new one. */
+  canonical: { id: string; title: string } | null;
 }
 
 interface ModelAnswer {
@@ -62,15 +67,40 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
   const { sources, passages } = await loadCorpus(user.orgId);
   const { hits, terms } = search(passages, question);
   const searched = [...sources.map((s) => s.title), ...(terms.length ? [`terms: ${terms.join(', ')}`] : [])];
+  const topic = hits[0]?.passage.id ?? `uncovered:${[...terms].sort().slice(0, 4).join('+') || 'none'}`;
 
   const notCovered = (): PolicyAnswer => ({
     reply: `I couldn't find this in the sources I have. I searched ${sources.map((s) => s.title).join(' and ')}. Please ask your finance team.`,
     covered: false,
     sources: [],
     searched,
+    topic,
+    canonical: null,
   });
 
   if (!hits.length) return notCovered();
+
+  // An approved explainer for this topic is the canonical answer: reuse it, don't draft fresh.
+  const canon = await findCanonical(
+    user.orgId,
+    hits.slice(0, 2).map((h) => h.passage.id),
+  );
+  if (canon) {
+    await markReused(canon.id);
+    return {
+      reply: capSentences(canon.bullets.map((b) => b.text.replace(/\s*[.;]?$/, '.')).join(' '), 3),
+      covered: true,
+      sources: canon.sources.slice(0, 2).map((src, i) => ({
+        title: src.title,
+        url: src.url,
+        lastChecked: src.lastChecked,
+        passageId: canon.bullets[i]?.passageId ?? canon.topic,
+      })),
+      searched,
+      topic: canon.topic,
+      canonical: { id: canon.id, title: canon.title },
+    };
+  }
 
   const byId = new Map<string, Passage>(hits.map((h) => [h.passage.id, h.passage]));
   const context = hits
@@ -100,9 +130,11 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
   }
 
   // Code-level checks on what the model returned.
-  const cited = [...new Set(model.passage_ids)].map((id) => byId.get(id)).filter((p): p is Passage => Boolean(p));
-  const answer = capSentences(model.answer.trim(), 3);
-  if (!model.covered || !answer || cited.length === 0 || violatesScope(answer)) return notCovered();
+  // Defensive: treat a malformed reply as no answer.
+  const ids = Array.isArray(model?.passage_ids) ? model.passage_ids : [];
+  const cited = [...new Set(ids)].map((id) => byId.get(String(id))).filter((p): p is Passage => Boolean(p));
+  const answer = capSentences(String(model?.answer ?? '').trim(), 3);
+  if (model?.covered !== true || !answer || cited.length === 0 || violatesScope(answer)) return notCovered();
 
   return {
     reply: answer,
@@ -114,6 +146,8 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
       passageId: p.id,
     })),
     searched,
+    topic,
+    canonical: null,
   };
 }
 

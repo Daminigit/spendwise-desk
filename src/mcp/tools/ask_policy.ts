@@ -37,11 +37,12 @@ export function registerAskPolicy(server: McpServer, ctx: McpContext) {
         await recordEvent({
           ...base,
           outcome: a.covered ? 'answered' : 'not_covered',
-          meta: { via: 'mcp', sources: a.sources.map((s) => s.url) },
+          meta: { via: 'mcp', topic: a.topic, canonicalId: a.canonical?.id ?? null, sources: a.sources.map((s) => s.url) },
         });
         return {
           covered: a.covered,
           answer: a.reply,
+          canonical: a.canonical,
           sources: a.sources.map((s) => ({ title: s.title, url: s.url, last_checked: s.lastChecked })),
           searched: a.searched,
         };

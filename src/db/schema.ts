@@ -266,6 +266,95 @@ export const assistantEvents = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Weekly loop: runs, the actions awaiting approval, what was written, and the
+// approved canonical answers the assistant reuses. No PII: texts are redacted
+// before they are stored, and recipients are roles, never email addresses.
+// ─────────────────────────────────────────────────────────────────────────────
+export const weeklyRuns = pgTable(
+  'weekly_runs',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    windowStart: text('window_start').notNull(), // YYYY-MM-DD, inclusive
+    windowEnd: text('window_end').notNull(), // YYYY-MM-DD, inclusive
+    trigger: text('trigger', { enum: ['manual', 'schedule'] }).notNull(),
+    themes: json('themes').$type<unknown[]>().notNull(),
+    stats: json('stats').$type<Record<string, unknown>>().notNull(),
+    pulse: json('pulse').$type<Record<string, unknown>>().notNull(),
+    explainer: json('explainer').$type<Record<string, unknown> | null>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('weekly_runs_org_idx').on(t.orgId, t.createdAt)],
+);
+
+export const runActions = pgTable(
+  'run_actions',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    runId: text('run_id')
+      .notNull()
+      .references(() => weeklyRuns.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['append_doc', 'email_draft', 'publish_explainer'] }).notNull(),
+    /** Human-readable destination, shown on the approval screen. */
+    target: text('target').notNull(),
+    /** The exact content that will be written if approved. */
+    payload: json('payload').$type<Record<string, unknown>>().notNull(),
+    status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+    edited: boolean('edited').notNull().default(false),
+    decidedBy: text('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('run_actions_run_idx').on(t.runId)],
+);
+
+export const publishedOutputs = pgTable(
+  'published_outputs',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    actionId: text('action_id')
+      .notNull()
+      .references(() => runActions.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['doc_entry', 'email_draft'] }).notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    meta: json('meta').$type<Record<string, unknown> | null>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('published_outputs_action_idx').on(t.actionId)],
+);
+
+export const canonicalAnswers = pgTable(
+  'canonical_answers',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    /** Corpus passage id this answer covers (the retrieval topic). */
+    topic: text('topic').notNull(),
+    title: text('title').notNull(),
+    bullets: json('bullets').$type<{ text: string; passageId: string }[]>().notNull(),
+    sources: json('sources').$type<{ title: string; url: string; lastChecked: string }[]>().notNull(),
+    lastChecked: text('last_checked').notNull(),
+    actionId: text('action_id').references(() => runActions.id, { onDelete: 'set null' }),
+    approvedBy: text('approved_by').references(() => users.id, { onDelete: 'set null' }),
+    active: boolean('active').notNull().default(true),
+    timesReused: integer('times_reused').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('canonical_answers_org_topic_idx').on(t.orgId, t.topic)],
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Relations (for Drizzle query API)
 // ─────────────────────────────────────────────────────────────────────────────
 export const organisationsRelations = relations(organisations, ({ many, one }) => ({
@@ -357,3 +446,7 @@ export type ReceiptFile = typeof receiptFiles.$inferSelect;
 
 export type AssistantEvent = typeof assistantEvents.$inferSelect;
 export type NewAssistantEvent = typeof assistantEvents.$inferInsert;
+export type WeeklyRun = typeof weeklyRuns.$inferSelect;
+export type RunAction = typeof runActions.$inferSelect;
+export type PublishedOutput = typeof publishedOutputs.$inferSelect;
+export type CanonicalAnswer = typeof canonicalAnswers.$inferSelect;

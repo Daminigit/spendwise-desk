@@ -27,6 +27,9 @@ services:
       # Claude API key for voice intent, policy answers and the weekly pulse. Never committed.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Weekly pulse runs by itself on Mondays 09:00 IST; drafts still need approval.
+      - key: PULSE_SCHEDULE
+        value: weekly
       - key: SESSION_SECRET
         generateValue: true
       # Receipts are stored in Postgres, so uploads survive restarts and deploys

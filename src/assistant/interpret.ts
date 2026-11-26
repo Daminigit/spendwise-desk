@@ -165,7 +165,14 @@ export async function interpret(input: InterpretInput): Promise<AssistantReply> 
       intent: r.intent,
       outcome: r.outcome,
       text,
-      meta: r.policy ? { covered: r.policy.covered, sources: r.policy.sources.map((s) => s.url) } : undefined,
+      meta: r.policy
+        ? {
+            covered: r.policy.covered,
+            topic: r.policy.topic,
+            canonicalId: r.policy.canonical?.id ?? null,
+            sources: r.policy.sources.map((s) => s.url),
+          }
+        : undefined,
     });
     return { ...r, redacted };
   };

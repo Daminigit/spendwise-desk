@@ -61,6 +61,12 @@
     if (!policy) return;
     const box = document.createElement('div');
     box.className = 'policy-sources small';
+    if (policy.canonical) {
+      const c = document.createElement('div');
+      c.className = 'badge source';
+      c.textContent = `Approved answer: ${policy.canonical.title}`;
+      box.appendChild(c);
+    }
     if (policy.sources && policy.sources.length) {
       policy.sources.forEach((s) => {
         const a = document.createElement('a');

@@ -76,13 +76,16 @@ function stem(w: string): string {
   return w.length > 4 && w.endsWith('s') ? w.slice(0, -1) : w;
 }
 
-function expand(words: string[]): string[] {
-  const out = new Set<string>();
+/** The user's own words weigh 1; words added through the synonym map weigh less. */
+const SYNONYM_WEIGHT = 0.5;
+
+function expand(words: string[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const w of words) out.set(stem(w), 1);
   for (const w of words) {
-    out.add(stem(w));
-    for (const s of SYNONYMS[w] ?? []) out.add(stem(s));
+    for (const s of SYNONYMS[w] ?? []) if (!out.has(stem(s))) out.set(stem(s), SYNONYM_WEIGHT);
   }
-  return [...out];
+  return out;
 }
 
 export interface SearchHit {
@@ -95,11 +98,15 @@ export interface SearchHit {
 export const MIN_SCORE = 1.2;
 
 export function search(passages: Passage[], question: string, k = 4): { hits: SearchHit[]; terms: string[] } {
-  const terms = expand(tokenize(question));
+  const weights = expand(tokenize(question));
+  const terms = [...weights.keys()];
   if (!terms.length) return { hits: [], terms };
 
-  const docs = passages.map((p) => new Set(tokenize(`${p.heading} ${p.text}`).map(stem)));
+  const bodies = passages.map((p) => tokenize(`${p.heading} ${p.text}`).map(stem));
+  const docs = bodies.map((b) => new Set(b));
+  const headings = passages.map((p) => new Set(tokenize(p.heading).map(stem)));
   const n = docs.length;
+  const avgLen = bodies.reduce((s, b) => s + b.length, 0) / Math.max(1, n);
   const idf = (t: string) => {
     const df = docs.filter((d) => d.has(t)).length;
     return df === 0 ? 0 : Math.log(1 + n / df);
@@ -108,7 +115,11 @@ export function search(passages: Passage[], question: string, k = 4): { hits: Se
   const hits = passages
     .map((passage, i) => {
       const matched = terms.filter((t) => docs[i].has(t));
-      const score = matched.reduce((s, t) => s + idf(t), 0);
+      // A word in the heading counts double: "Supplier GSTIN" beats a long
+      // catch-all passage that merely mentions GSTIN. Long passages are
+      // normalised down a little (BM25-style) so they do not win by length.
+      const raw = matched.reduce((s, t) => s + idf(t) * weights.get(t)! * (headings[i].has(t) ? 2 : 1), 0);
+      const score = raw / (0.6 + 0.4 * (bodies[i].length / avgLen));
       return { passage, score, matched };
     })
     .filter((h) => h.score >= MIN_SCORE)

@@ -28,6 +28,7 @@ import { DEFAULT_CATEGORIES } from '../domain/org.js';
 import { connectorUrl, hashToken } from '../domain/tokens.js';
 import { validateGSTIN } from '../domain/gstin.js';
 import { deleteReceipts, uploadReceipt } from '../storage/index.js';
+import { seedAssistantEvents, seedRecentClaim } from './seed-assistant.js';
 
 export const DEMO_ORG_NAME = 'Acme Travel Pvt Ltd';
 export const DEMO_PASSWORD = 'demo1234';
@@ -467,6 +468,11 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<SeedResult | nul
       { id: randomUUID(), claimId: mumbai.id, userId: ids.arjun, body: 'Understood, will attach the approval email and resubmit.', createdAt: plusDays(weekday(49), 0.1) },
     ]);
   }
+
+  // Last week's assistant questions, so the weekly pulse has data to group
+  const n = await seedAssistantEvents(orgId, [ids.riya, ids.arjun, ids.riya, ids.manager]);
+  await seedRecentClaim(orgId, ids.arjun);
+  log(`Added ${n} assistant events and a flagged draft claim from the last 7 days (for the weekly pulse).`);
 
   // Re-attach the demo users' previous connector tokens to the recreated users
   const idByEmail: Record<string, string> = {
