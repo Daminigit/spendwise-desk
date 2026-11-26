@@ -14,6 +14,8 @@ import { loadCorpus } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';
 import { isAdviceRequest } from '../assistant/guard.js';
 import { createClaim } from '../domain/claims.js';
+import { approveDraft, fixedDrafter, submitQuestion } from '../desk/desk.js';
+import { findUserById } from '../domain/org.js';
 
 /** YYYY-MM-DD in India, `daysAgo` days back. */
 function istDay(daysAgo: number): string {
@@ -141,4 +143,53 @@ export async function seedAssistantEvents(orgId: string, userIds: string[]): Pro
 
   await db.insert(assistantEvents).values(rows);
   return rows.length;
+}
+
+/**
+ * A demo queue on the response desk. The drafts are fixed (no model call at
+ * boot), but each goes through the real agents, orchestrator and reviewer,
+ * so the verdicts are real: the hotel-limit draft states ₹8,000, which is not
+ * in the cited passage, and the reviewer rejects it.
+ */
+const DESK_DEMO: { q: string; reply: string | null; cite: string[]; approve?: boolean }[] = [
+  {
+    q: 'When do I need to attach a receipt?',
+    reply: 'A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted.',
+    cite: ['policy-receipts'],
+    approve: true,
+  },
+  {
+    q: 'Do I need the GSTIN on a hotel bill?',
+    reply: "Yes, if the bill is above ₹2,000.00: the supplier's GSTIN is required for any expense above that amount. A missing or invalid GSTIN is flagged for the approver.",
+    cite: ['policy-gstin'],
+  },
+  {
+    q: 'What is the hotel limit per night?',
+    reply: 'Hotel stays are reimbursed up to ₹8,000 per night.',
+    cite: ['policy-limit-lodge'],
+  },
+  {
+    q: 'Can I claim a cab on Sunday?',
+    reply: 'Yes. Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check.',
+    cite: ['policy-weekend'],
+  },
+  { q: 'What is the leave policy?', reply: null, cite: [] },
+];
+
+export async function seedReplyDrafts(orgId: string, askerIds: string[], adminId: string): Promise<number> {
+  let n = 0;
+  for (const [i, d] of DESK_DEMO.entries()) {
+    const user = await findUserById(askerIds[i % askerIds.length]);
+    if (!user || user.orgId !== orgId) continue;
+    const out = await submitQuestion(
+      user,
+      { question: d.q, channel: i % 2 ? 'voice' : 'text', via: 'web' },
+      { drafter: fixedDrafter(d.reply, d.cite), modelReview: false },
+    );
+    if (out.kind === 'queued') {
+      n += 1;
+      if (d.approve) await approveDraft(orgId, out.draftId, adminId);
+    }
+  }
+  return n;
 }

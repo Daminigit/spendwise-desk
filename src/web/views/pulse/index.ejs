@@ -25,6 +25,12 @@
     <div class="card stat"><span class="stat-n"><%= stats.rejectedLines %></span><span class="muted small">rejected lines</span></div>
     <div class="card stat"><span class="stat-n"><%= stats.adviceRefused %></span><span class="muted small">advice requests refused</span></div>
   </div>
+  <% if (stats.deskDrafts !== undefined) { %>
+    <p class="small muted">
+      <a href="/desk">Response desk</a>, same window: <%= stats.deskDrafts %> drafts queued · <%= stats.deskApproved %> approved
+      (<%= stats.deskEdited %> edited) · <%= stats.deskDeclined %> rejected by finance · <%= stats.deskReviewerRejected %> stopped by the reviewer · <%= stats.deskPending %> still waiting
+    </p>
+  <% } %>
 
   <section class="section">
     <h2>Themes <span class="muted small">(max 5, top 3 in the pulse; counts cover <%= stats.window %>)</span></h2>

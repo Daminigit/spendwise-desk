@@ -8,6 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { setClaudeForTests } from '../../src/ai/model.js';
 import { answerPolicyQuestion } from '../../src/assistant/policy.js';
+import { approveDraft } from '../../src/desk/desk.js';
 import {
   createTestOrg,
   hasTestDb,
@@ -120,11 +121,23 @@ describe.skipIf(!hasTestDb)('policy answers', () => {
     expect(html).toMatch(/last checked 2026-11-26/);
   });
 
-  it('exposes cited answers over MCP and refuses advice there too', async () => {
+  it('sends MCP questions through the desk: in review, then the approved, cited answer; refuses advice', async () => {
     fakeAnswer({ covered: true, answer: 'Receipts are needed above ₹500.00.', passage_ids: ['policy-receipts'] });
     const mcp = await mcpClientFor(server, org.emp);
-    const ok = await mcp.call('ask_policy', { question: 'When is a receipt required?' });
-    expect(ok.data).toMatchObject({ covered: true, sources: [{ last_checked: expect.any(String) }] });
+    const asked = await mcp.call('ask_policy', { question: 'When is a receipt required?' });
+    const data = asked.data as { status: string; covered: boolean; question_id: string; sources: unknown[] };
+    expect(data).toMatchObject({ status: 'in_review', covered: true, sources: [] });
+
+    const waiting = await mcp.call('get_policy_answer', { question_id: data.question_id });
+    expect(waiting.data).toMatchObject({ status: 'in_review', answer: null });
+
+    await approveDraft(org.orgId, data.question_id, org.admin.id);
+    const ok = await mcp.call('get_policy_answer', { question_id: data.question_id });
+    expect(ok.data).toMatchObject({
+      status: 'answered',
+      answer: 'Receipts are needed above ₹500.00.',
+      sources: [{ last_checked: expect.any(String) }],
+    });
 
     const advice = await mcp.call('ask_policy', { question: 'Which mutual fund should I buy with my reimbursement?' });
     expect(advice.data).toMatchObject({ covered: false, refused: true });

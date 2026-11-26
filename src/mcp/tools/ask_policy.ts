@@ -1,23 +1,25 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { answerPolicyQuestion } from '../../assistant/policy.js';
 import { isAdviceRequest, ADVICE_REFUSAL } from '../../assistant/guard.js';
 import { recordEvent } from '../../assistant/events.js';
 import { redactText } from '../../ai/redact.js';
+import { submitQuestion } from '../../desk/desk.js';
 import { run, type McpContext } from '../util.js';
 
 export function registerAskPolicy(server: McpServer, ctx: McpContext) {
   server.registerTool(
     'ask_policy',
     {
-      title: 'Ask a policy question (cited)',
+      title: 'Ask a policy question (cited, reviewed by finance)',
       description:
-        "Answer a question about the organisation's expense policy or GST tax-invoice rules, from Spendwise's " +
-        'source corpus only. Returns a short answer with source links and last-checked dates, or covered=false ' +
-        'with the sources searched. Relay the answer and its source; never fill a gap from your own knowledge. ' +
-        'Investment, tax-planning and returns questions are refused.',
+        "Ask a question about the organisation's expense policy or GST tax-invoice rules. Answers come from " +
+        "Spendwise's source corpus only. If finance has approved an answer on this topic it is returned at once " +
+        '(status "answered", with source links and last-checked dates). Otherwise a draft goes to the finance ' +
+        'desk for review (status "in_review", with a question_id): tell the user it is with finance and use ' +
+        'get_policy_answer later. covered=false means the sources do not cover it; relay what was searched and ' +
+        'never fill the gap from your own knowledge. Investment, tax-planning and returns questions are refused.',
       inputSchema: { question: z.string().min(3).max(500).describe('The question, in the user’s words.') },
-      annotations: { readOnlyHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: false, openWorldHint: false },
     },
     ({ question }) =>
       run('ask_policy', async () => {
@@ -31,19 +33,42 @@ export function registerAskPolicy(server: McpServer, ctx: McpContext) {
         };
         if (isAdviceRequest(q)) {
           await recordEvent({ ...base, outcome: 'refused', meta: { via: 'mcp' } });
-          return { covered: false, refused: true, answer: ADVICE_REFUSAL, sources: [], searched: [] };
+          return { status: 'refused', covered: false, refused: true, answer: ADVICE_REFUSAL, sources: [], searched: [] };
         }
-        const a = await answerPolicyQuestion(ctx.user, q);
+        const out = await submitQuestion(ctx.user, { question: q, raw: question, channel: 'text', via: 'mcp' });
+        if (out.kind === 'refused') {
+          await recordEvent({ ...base, outcome: 'refused', meta: { via: 'mcp' } });
+          return { status: 'refused', covered: false, refused: true, answer: out.reply, sources: [], searched: [] };
+        }
+        const a = out.answer;
         await recordEvent({
           ...base,
-          outcome: a.covered ? 'answered' : 'not_covered',
-          meta: { via: 'mcp', topic: a.topic, canonicalId: a.canonical?.id ?? null, sources: a.sources.map((s) => s.url) },
+          outcome: out.kind === 'canonical' ? 'answered' : a.covered ? 'queued' : 'not_covered',
+          meta: {
+            via: 'mcp',
+            topic: a.topic,
+            covered: a.covered,
+            canonicalId: a.canonical?.id ?? null,
+            sources: a.sources.map((s) => s.url),
+            draftId: out.kind === 'queued' ? out.draftId : null,
+          },
         });
+        if (out.kind === 'canonical') {
+          return {
+            status: 'answered',
+            covered: true,
+            answer: out.reply,
+            canonical: a.canonical,
+            sources: a.sources.map((s) => ({ title: s.title, url: s.url, last_checked: s.lastChecked })),
+            searched: a.searched,
+          };
+        }
         return {
+          status: a.covered ? 'in_review' : 'not_covered',
           covered: a.covered,
-          answer: a.reply,
-          canonical: a.canonical,
-          sources: a.sources.map((s) => ({ title: s.title, url: s.url, last_checked: s.lastChecked })),
+          question_id: out.draftId,
+          answer: out.reply,
+          sources: [],
           searched: a.searched,
         };
       }),

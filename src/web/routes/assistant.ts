@@ -4,6 +4,7 @@
  * POST /assistant/confirm   { token, channel }         → writes exactly the previewed action
  * POST /assistant/cancel    { intent, channel }        → logs that the preview was dropped
  * POST /assistant/transcribe multipart audio           → { text } via Whisper (audio is not stored)
+ * GET  /assistant/questions                           → the caller's recent policy questions and approved replies
  */
 
 import { Router } from 'express';
@@ -21,6 +22,7 @@ import { DomainError } from '../../domain/errors.js';
 import { interpret, INTENTS, type Pending } from '../../assistant/interpret.js';
 import { confirmAction } from '../../assistant/actions.js';
 import { recordEvent } from '../../assistant/events.js';
+import { myQuestions } from '../../desk/desk.js';
 import { ah, parseForm } from '../util.js';
 
 export const assistantRouter = Router();
@@ -63,6 +65,13 @@ assistantRouter.get('/assistant', (_req, res) => {
     modelName: modelLabel(),
   });
 });
+
+assistantRouter.get(
+  '/assistant/questions',
+  ah(async (req, res) => {
+    res.json({ questions: await myQuestions(req.user!) });
+  }),
+);
 
 assistantRouter.post(
   '/assistant/message',

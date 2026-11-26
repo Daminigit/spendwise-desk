@@ -7,8 +7,9 @@
  *            ──► no passage above the threshold? → "not covered", name what was searched
  *            ──► Claude answers ONLY from the retrieved passages, as JSON
  *                { covered, answer, passage_ids }
- *            ──► code checks: cited ids were really retrieved, ≤3 sentences,
- *                no advice or return figures; otherwise "not covered"
+ *            ──► the reviewer (src/desk/reviewer.ts) checks the draft in code:
+ *                cited ids were really retrieved, ≤3 sentences, every number
+ *                is in a cited passage, no advice or return figures
  *
  * Every answer that is shown carries a source link and its last-checked date.
  */
@@ -16,8 +17,7 @@
 import { askJson, AiUnavailableError } from '../ai/model.js';
 import { loadCorpus, type Passage } from '../corpus/corpus.js';
 import { search } from '../corpus/search.js';
-import { ungroundedNumbers } from '../corpus/grounding.js';
-import { violatesScope } from './guard.js';
+import { codeChecks } from '../desk/reviewer.js';
 import { findCanonical, markReused } from '../pulse/canonical.js';
 import type { Actor } from './interpret.js';
 
@@ -69,18 +69,41 @@ If they do, set covered to true and answer in at most three short sentences, usi
 List in passage_ids the id of every passage you used.
 State facts only. Never recommend, advise, or give tax-planning, investment, or return figures. Never invent amounts or rules.`;
 
-export async function answerPolicyQuestion(user: Actor, question: string): Promise<PolicyAnswer> {
+/** A draft before review: what the corpus agent produced, plus what the reviewer needs to check it. */
+export interface PolicyDraft extends PolicyAnswer {
+  /** Passages the search returned (the only ones the draft may cite). */
+  retrieved: Passage[];
+  /** Score of the best passage (0 when nothing matched). */
+  bestScore: number;
+  /** Passage ids the model cited that were not among the retrieved passages. */
+  invalidCitations: string[];
+  /** True when the model wrote more than three sentences and the draft was cut. */
+  trimmed: boolean;
+}
+
+/** The reply when nothing in the corpus answers the question: says so and names what was searched. */
+export function notCoveredReply(sourceTitles: string[]): string {
+  return `I couldn't find this in the sources I have. I searched ${sourceTitles.join(' and ')}. Please ask your finance team.`;
+}
+
+/**
+ * The corpus agent: retrieve, reuse a canonical answer if one is approved,
+ * otherwise draft from the passages. No checks are applied here; the
+ * reviewer (src/desk/reviewer.ts) decides whether the draft may be used.
+ */
+export async function draftPolicyAnswer(user: Actor, question: string): Promise<PolicyDraft> {
   const { sources, passages } = await loadCorpus(user.orgId);
   const { hits, terms } = search(passages, question);
   const searched = [...sources.map((s) => s.title), ...(terms.length ? [`terms: ${terms.join(', ')}`] : [])];
   const topic = hits[0]?.passage.id ?? `uncovered:${[...terms].sort().slice(0, 4).join('+') || 'none'}`;
+  const retrieved = hits.map((h) => h.passage);
+  const base = { searched, topic, retrieved, bestScore: hits[0]?.score ?? 0, invalidCitations: [], trimmed: false };
 
-  const notCovered = (): PolicyAnswer => ({
-    reply: `I couldn't find this in the sources I have. I searched ${sources.map((s) => s.title).join(' and ')}. Please ask your finance team.`,
+  const notCovered = (): PolicyDraft => ({
+    ...base,
+    reply: notCoveredReply(sources.map((s) => s.title)),
     covered: false,
     sources: [],
-    searched,
-    topic,
     canonical: null,
     drafter: 'none',
   });
@@ -95,6 +118,7 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
   if (canon) {
     await markReused(canon.id);
     return {
+      ...base,
       reply: capSentences(canon.bullets.map((b) => b.text.replace(/\s*[.;]?$/, '.')).join(' '), 3),
       covered: true,
       sources: canon.sources.slice(0, 2).map((src, i) => ({
@@ -103,14 +127,13 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
         lastChecked: src.lastChecked,
         passageId: canon.bullets[i]?.passageId ?? canon.topic,
       })),
-      searched,
       topic: canon.topic,
       canonical: { id: canon.id, title: canon.title },
       drafter: 'canonical',
     };
   }
 
-  const byId = new Map<string, Passage>(hits.map((h) => [h.passage.id, h.passage]));
+  const byId = new Map<string, Passage>(retrieved.map((p) => [p.id, p]));
   const context = hits
     .map((h) => `[${h.passage.id}] (${h.passage.sourceTitle} — ${h.passage.heading}) ${h.passage.text}`)
     .join('\n');
@@ -134,18 +157,10 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
       const best = hits[0];
       if (best.score < EXTRACTIVE_MIN_SCORE) return notCovered();
       return {
+        ...base,
         reply: capSentences(best.passage.text, 3),
         covered: true,
-        sources: [
-          {
-            title: `${best.passage.sourceTitle}: ${best.passage.heading}`,
-            url: best.passage.url,
-            lastChecked: best.passage.lastChecked,
-            passageId: best.passage.id,
-          },
-        ],
-        searched,
-        topic,
+        sources: [toSource(best.passage)],
         canonical: null,
         drafter: 'extractive',
       };
@@ -153,29 +168,47 @@ export async function answerPolicyQuestion(user: Actor, question: string): Promi
     throw err;
   }
 
-  // Code-level checks on what the model returned.
   // Defensive: treat a malformed reply as no answer.
-  const ids = Array.isArray(model?.passage_ids) ? model.passage_ids : [];
-  const cited = [...new Set(ids)].map((id) => byId.get(String(id))).filter((p): p is Passage => Boolean(p));
-  const answer = capSentences(String(model?.answer ?? '').trim(), 3);
-  if (model?.covered !== true || !answer || cited.length === 0 || violatesScope(answer)) return notCovered();
-  // Every number in the answer must come from a cited passage or the question itself.
-  if (ungroundedNumbers(answer, [...cited.map((p) => p.text), question]).length) return notCovered();
+  const ids = Array.isArray(model?.passage_ids) ? [...new Set(model.passage_ids.map(String))] : [];
+  const cited = ids.map((id) => byId.get(id)).filter((p): p is Passage => Boolean(p));
+  const full = String(model?.answer ?? '').trim();
+  const answer = capSentences(full, 3);
+  if (model?.covered !== true || !answer) return notCovered();
 
   return {
+    ...base,
     reply: answer,
     covered: true,
-    sources: cited.slice(0, 2).map((p) => ({
-      title: `${p.sourceTitle}: ${p.heading}`,
-      url: p.url,
-      lastChecked: p.lastChecked,
-      passageId: p.id,
-    })),
-    searched,
-    topic,
+    sources: cited.slice(0, 2).map(toSource),
     canonical: null,
     drafter: 'model',
+    invalidCitations: ids.filter((id) => !byId.has(id)),
+    trimmed: answer !== full,
   };
+}
+
+/**
+ * Draft and apply the reviewer's code checks in one step: a draft that fails
+ * any blocking check becomes "not covered". Used where there is no human in
+ * the loop to read the reviewer's verdict (the evals' drafting checks).
+ */
+export async function answerPolicyQuestion(user: Actor, question: string): Promise<PolicyAnswer> {
+  const d = await draftPolicyAnswer(user, question);
+  if (!d.covered || d.drafter === 'canonical') return strip(d);
+  if (codeChecks(d, question).some((f) => f.severity === 'block')) {
+    const { sources } = await loadCorpus(user.orgId);
+    return strip({ ...d, reply: notCoveredReply(sources.map((s) => s.title)), covered: false, sources: [], drafter: 'none' });
+  }
+  return strip(d);
+}
+
+function strip(d: PolicyDraft): PolicyAnswer {
+  const { reply, covered, sources, searched, topic, canonical, drafter } = d;
+  return { reply, covered, sources, searched, topic, canonical, drafter };
+}
+
+function toSource(p: Passage): PolicySource {
+  return { title: `${p.sourceTitle}: ${p.heading}`, url: p.url, lastChecked: p.lastChecked, passageId: p.id };
 }
 
 /** Keep at most `n` sentences. */

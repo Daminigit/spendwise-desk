@@ -24,6 +24,7 @@ import { receiptsRouter } from './routes/receipts.js';
 import { assistantRouter } from './routes/assistant.js';
 import { sourcesRouter } from './routes/sources.js';
 import { pulseRouter } from './routes/pulse.js';
+import { deskRouter } from './routes/desk.js';
 import { assertStorageConfig } from '../storage/index.js';
 import { logError } from '../log.js';
 
@@ -117,6 +118,7 @@ export function createApp() {
   app.use(assistantRouter);
   app.use(sourcesRouter);
   app.use(pulseRouter);
+  app.use(deskRouter);
 
   // 404
   app.use((req, res) => {

@@ -34,7 +34,7 @@ export const DEFAULT_GROQ_FAST_MODEL = 'openai/gpt-oss-20b';
 export const DEFAULT_WHISPER_MODEL = 'whisper-large-v3-turbo';
 
 /** Calls that only classify short text use the faster model (and its own quota). */
-const FAST_PURPOSES = new Set(['intent']);
+const FAST_PURPOSES = new Set(['intent', 'review']);
 
 export type Effort = 'low' | 'medium' | 'high';
 export type Provider = 'groq' | 'anthropic';

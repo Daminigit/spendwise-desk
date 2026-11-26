@@ -1,0 +1,86 @@
+<div class="page-head"><h1>Response desk</h1></div>
+<nav class="tabs" aria-label="Desk">
+  <a href="/desk" class="<%= tab === 'pending' ? 'active' : '' %>" <%- tab === 'pending' ? 'aria-current="page"' : '' %>>Waiting for review</a>
+  <a href="/desk/decided" class="<%= tab === 'decided' ? 'active' : '' %>" <%- tab === 'decided' ? 'aria-current="page"' : '' %>>Decided</a>
+  <a href="/pulse/canonical">Canonical answers in use</a>
+</nav>
+
+<p class="muted">
+  Every policy question without an approved canonical answer lands here. Three agents run on it in parallel
+  (<strong>corpus</strong>: official documents · <strong>signals</strong>: what people asked and which claim lines were flagged this week ·
+  <strong>compliance</strong>: personal data and advice requests), the orchestrator writes one draft and a routing note, and the
+  <strong>reviewer</strong> checks it: code checks block, the model check can only flag.
+  <strong>Approving a draft writes one thing:</strong> that reply, shown to the person who asked (under <em>Your questions</em> in the assistant, and to their Claude through <code>get_policy_answer</code>).
+</p>
+
+<% if (!drafts.length) { %>
+  <div class="card empty"><p class="muted"><%= tab === 'pending' ? 'Nothing waiting. New questions appear here as people ask them.' : 'Nothing decided yet.' %></p></div>
+<% } %>
+
+<% const when = (d) => d ? new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '';
+   const verdictLabel = { pass: 'Reviewer: pass', flag: 'Reviewer: flagged', reject: 'Reviewer: rejected' };
+   const verdictClass = { pass: 'status-approved', flag: 'flag', reject: 'status-rejected' };
+   const sevLabel = { block: 'Blocks', warn: 'Check', info: 'Note' }; %>
+
+<% drafts.forEach(d => { const rv = d.review; const rt = d.routing; %>
+  <article class="card section approval approval-<%= d.status %>" id="d-<%= d.id %>">
+    <div class="approval-head">
+      <h3>“<%= d.question %>”</h3>
+      <span class="badge <%= verdictClass[rv.verdict] %>"><%= verdictLabel[rv.verdict] %></span>
+      <% if (d.status !== 'pending') { %><span class="badge status-<%= d.status %>"><%= d.status %></span><% } %>
+      <% if (d.edited) { %><span class="badge">edited</span><% } %>
+      <% if (!d.covered) { %><span class="badge">not covered</span><% } %>
+    </div>
+    <p class="small muted"><%= d.channel %> · <%= d.via === 'mcp' ? "employee's Claude (MCP)" : 'web assistant' %> · asked <%= when(d.createdAt) %> · <span class="mono">id <%= d.id.slice(0, 8) %></span></p>
+
+    <p class="small"><strong>Reply draft</strong> <span class="muted">(<%= d.drafter === 'model' ? 'written by the model from the passages' : d.drafter === 'extractive' ? 'quoted from the passage' : 'fixed "not covered" reply' %>)</span></p>
+    <blockquote class="card draft-text"><%= d.status === 'approved' ? d.finalReply : d.draft %></blockquote>
+
+    <% if (d.sources.length) { %>
+      <p class="small"><strong>Cites:</strong>
+        <% d.sources.forEach((s, i) => { %><%= i ? ' · ' : '' %><a href="<%= s.url %>" target="_blank" rel="noopener"><%= s.title %></a> <a href="/sources#<%= s.passageId %>" class="mono">[<%= s.passageId %>]</a> <span class="muted">checked <%= s.lastChecked %></span><% }) %>
+      </p>
+    <% } else { %>
+      <p class="small"><strong>Searched:</strong> <%= d.searched.join('; ') %></p>
+    <% } %>
+
+    <% if (rv.flags.length) { %>
+      <ul class="review-flags small">
+        <% rv.flags.forEach(f => { %><li class="sev-<%= f.severity %>"><strong><%= sevLabel[f.severity] %>:</strong> <%= f.message %></li><% }) %>
+      </ul>
+    <% } %>
+    <p class="small muted">Model reviewer: <%= rv.model === 'supported' ? 'every fact supported by the cited passage' : rv.model === 'unsupported' ? 'found something unsupported (see above)' : 'not run' %>.</p>
+
+    <p class="small"><strong>Routing (internal):</strong> <%= rt.destination %>. <%= rt.note %></p>
+
+    <details class="small">
+      <summary>Agents (run in parallel)</summary>
+      <table class="table">
+        <thead><tr><th>Agent</th><th>Took</th><th>Found</th></tr></thead>
+        <tbody><% d.agents.forEach(a => { %><tr><td><%= a.agent %></td><td><%= a.ms %> ms</td><td><%= a.summary %></td></tr><% }) %></tbody>
+      </table>
+    </details>
+
+    <% if (d.status === 'pending') { %>
+      <% if (d.covered) { %>
+        <form method="post" action="/desk/drafts/<%= d.id %>/edit" class="form">
+          <label class="small">Edit the reply (3 sentences or fewer; re-checked against the same sources)
+            <textarea name="text" rows="3" maxlength="1000"><%= d.draft %></textarea>
+          </label>
+          <button class="btn btn-sm" type="submit">Save edit</button>
+        </form>
+      <% } %>
+      <div class="preview-actions">
+        <form method="post" action="/desk/drafts/<%= d.id %>/approve">
+          <button class="btn btn-primary" type="submit" <%= rv.verdict === 'reject' ? 'disabled' : '' %> title="<%= rv.verdict === 'reject' ? 'The reviewer rejected this draft: edit it so it passes, or reject it' : 'Send this reply to the person who asked' %>">Approve and send to asker</button>
+        </form>
+        <form method="post" action="/desk/drafts/<%= d.id %>/reject" class="inline-form">
+          <input type="text" name="reason" maxlength="300" placeholder="Reason (shown to the asker, optional)" aria-label="Reason for rejecting">
+          <button class="btn" type="submit">Reject</button>
+        </form>
+      </div>
+    <% } else { %>
+      <p class="small muted"><%= d.status === 'approved' ? 'Sent to the asker' : 'Rejected' %> <%= when(d.decidedAt) %><%= d.rejectReason ? ` · reason: ${d.rejectReason}` : '' %>.</p>
+    <% } %>
+  </article>
+<% }) %>

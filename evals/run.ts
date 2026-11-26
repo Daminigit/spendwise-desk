@@ -95,6 +95,7 @@ async function main() {
   const { loadCorpus } = await import('../src/corpus/corpus.js');
   const { search, DEFAULT_SEARCH } = await import('../src/corpus/search.js');
   const { answerPolicyQuestion } = await import('../src/assistant/policy.js');
+  const desk = await import('../src/desk/desk.js');
   const { interpret } = await import('../src/assistant/interpret.js');
   const guardV2 = await import('../src/assistant/guard.js');
   const guardV1 = await import('./legacy/guard-v1.js');
@@ -149,6 +150,8 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   // 1. FEASIBILITY
   // ═════════════════════════════════════════════════════════════════════════
+  // Every question goes through the response desk: three agents in parallel,
+  // the orchestrator, the reviewer, then a pending reply draft for a person.
   type Answer = Awaited<ReturnType<typeof answerPolicyQuestion>>;
   const queue: {
     q: string;
@@ -158,9 +161,16 @@ async function main() {
     source: string;
     searched: string[];
     answer: Answer;
+    draftId: string;
+    verdict: string;
+    flags: string[];
+    routing: string;
+    agents: string[];
   }[] = [];
   for (const q of D.QUEUE) {
-    const a = await answerPolicyQuestion(riya, q);
+    const out = await desk.submitQuestion(riya, { question: q, channel: 'text', via: 'web' });
+    if (out.kind === 'refused') continue;
+    const a = out.answer;
     queue.push({
       q,
       reply: a.reply,
@@ -169,17 +179,47 @@ async function main() {
       source: a.sources[0] ? `${a.sources[0].title} (${a.sources[0].url}, checked ${a.sources[0].lastChecked})` : '',
       searched: a.searched,
       answer: a,
+      draftId: out.kind === 'queued' ? out.draftId : '',
+      verdict: out.kind === 'queued' ? out.review.verdict : 'canonical',
+      flags: out.kind === 'queued' ? out.review.flags.map((f) => `${f.severity}: ${f.message}`) : [],
+      routing: out.kind === 'queued' ? `${out.routing.destination}. ${out.routing.note}` : '',
+      agents: [],
     });
   }
+  const queuedRows = await db.select().from(schema.replyDrafts).where(eq(schema.replyDrafts.orgId, orgId));
+  for (const x of queue) {
+    const row = queuedRows.find((r) => r.id === x.draftId);
+    x.agents = ((row?.agents ?? []) as { agent: string }[]).map((a) => a.agent);
+  }
+  const usable = (x: (typeof queue)[number]) => x.covered && x.verdict !== 'reject';
   const queueOk = queue.filter((x) =>
-    x.covered ? x.source !== '' : /couldn't find this/.test(x.reply) && x.searched.length > 0,
+    x.covered
+      ? x.source !== '' || x.verdict === 'reject'
+      : /couldn't find this/.test(x.reply) && x.searched.length > 0,
   );
   check(
     'feasibility',
     'Every queued question gets a cited draft or an explicit "not covered"',
-    queueOk.length === queue.length,
-    `${queueOk.length}/${queue.length} (${queue.filter((x) => x.covered).length} drafted, ${queue.filter((x) => !x.covered).length} not covered)`,
+    queueOk.length === D.QUEUE.length,
+    `${queueOk.length}/${D.QUEUE.length} (${queue.filter(usable).length} drafted, ` +
+      `${queue.filter((x) => x.verdict === 'reject').length} stopped by the reviewer, ${queue.filter((x) => !x.covered).length} not covered)`,
     queue,
+  );
+  const piped = queue.filter(
+    (x) =>
+      x.agents.join(',') === 'corpus,signals,compliance' &&
+      x.routing.length > 0 &&
+      ['pass', 'flag', 'reject'].includes(x.verdict),
+  );
+  const mine = new Set(queue.map((x) => x.draftId));
+  const pendingNow = queuedRows.filter((r) => mine.has(r.id) && r.status === 'pending').length;
+  check(
+    'feasibility',
+    'Each question runs through 3 parallel agents, the orchestrator (routing note) and the reviewer, then waits for a person',
+    piped.length === queue.length && pendingNow === queue.length,
+    `${piped.length}/${queue.length} with all three agents, a routing note and a verdict ` +
+      `(${queue.filter((x) => x.verdict === 'pass').length} pass, ${queue.filter((x) => x.verdict === 'flag').length} flagged, ` +
+      `${queue.filter((x) => x.verdict === 'reject').length} rejected); ${pendingNow} pending, 0 sent without approval`,
   );
   const long = queue.filter((x) => x.reply.split(/(?<=[.!?])\s+/).length > 3);
   check(
@@ -282,7 +322,7 @@ async function main() {
   const changedByEdit = diff(s0.actions, s1.actions);
   check(
     'edits',
-    'A human edit changes only that draft',
+    'A human edit changes only that draft (weekly actions)',
     changedByEdit.length === 1 &&
       changedByEdit[0] === email.id &&
       s1.outputs === s0.outputs &&
@@ -296,7 +336,7 @@ async function main() {
   const changedByApprove = diff(s0.actions, s1.actions);
   check(
     'edits',
-    'Approving one action does not trigger another',
+    'Approving one action does not trigger another (weekly actions)',
     changedByApprove.length === 1 &&
       changedByApprove[0] === doc.id &&
       s1.outputs === s0.outputs + 1 &&
@@ -311,7 +351,7 @@ async function main() {
   }
   check(
     'edits',
-    'An approved action cannot be approved again',
+    'An approved action cannot be approved again (weekly actions)',
     doubleBlocked,
     doubleBlocked ? 'second approval rejected' : 'second approval went through',
   );
@@ -331,13 +371,97 @@ async function main() {
   const changedByReject = diff(s0.actions, s1.actions);
   check(
     'edits',
-    'Rejecting a draft leaves the rest of the queue untouched',
+    'Rejecting a draft leaves the rest of the queue untouched (weekly actions)',
     changedByReject.length === (publish ? 1 : 0) &&
       diff(s0.claims, s1.claims).length === 0 &&
       s1.expenses === s0.expenses &&
       s1.outputs === s0.outputs &&
       s1.canonical === s0.canonical,
     `changed actions: ${changedByReject.length} (the rejected one); claims changed: ${diff(s0.claims, s1.claims).length}; expenses ${s0.expenses}→${s1.expenses}`,
+  );
+
+  // Response desk: three planted reply drafts, then edit / approve / reject one at a time.
+  const deskSnap = async () => {
+    const r = await db.select().from(schema.replyDrafts).where(eq(schema.replyDrafts.orgId, orgId));
+    return Object.fromEntries(
+      r.map((x) => [x.id, `${x.status}|${x.edited}|${x.draft}|${x.finalReply ?? ''}|${JSON.stringify(x.review)}`]),
+    );
+  };
+  const plant = async (q: string, reply: string | null, cite: string[]) => {
+    const o = await desk.submitQuestion(
+      arjun,
+      { question: q, channel: 'text', via: 'web' },
+      { drafter: desk.fixedDrafter(reply, cite), modelReview: false },
+    );
+    if (o.kind !== 'queued') throw new Error(`expected a queued draft for "${q}"`);
+    return o;
+  };
+  const dA = await plant('What is the meals limit?', 'Meals have a per-item limit of ₹1,500.00.', ['policy-limit-meals']);
+  const dB = await plant('Can I claim a cab on Sunday?', 'Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check.', ['policy-weekend']);
+  const dC = await plant('When do I need a receipt?', 'A receipt image is required for any expense above ₹500.00.', ['policy-receipts']);
+
+  let k0 = await deskSnap();
+  let c0 = await snap();
+  await desk.editDraft(orgId, dA.draftId, 'Meals have a per-item limit of ₹1,500.00 and a daily limit of ₹2,500.00.');
+  let k1 = await deskSnap();
+  let c1 = await snap();
+  let refusedEdit = false;
+  try {
+    await desk.editDraft(orgId, dA.draftId, 'Meals have a per-item limit of ₹3,000.');
+  } catch {
+    refusedEdit = true;
+  }
+  const kAfterBad = await deskSnap();
+  check(
+    'edits',
+    'A human edit changes only that draft (response desk)',
+    diff(k0, k1).length === 1 &&
+      diff(k0, k1)[0] === dA.draftId &&
+      diff(c0.actions, c1.actions).length === 0 &&
+      c1.outputs === c0.outputs &&
+      refusedEdit &&
+      diff(k1, kAfterBad).length === 0,
+    `drafts changed: ${diff(k0, k1).length} (the edited one); other state unchanged; ` +
+      `an edit with an invented figure was ${refusedEdit ? 'refused and changed nothing' : 'saved'}`,
+  );
+
+  k0 = await deskSnap();
+  c0 = await snap();
+  await desk.approveDraft(orgId, dB.draftId, admin.id);
+  k1 = await deskSnap();
+  c1 = await snap();
+  check(
+    'edits',
+    'Approving one draft does not trigger another (response desk)',
+    diff(k0, k1).length === 1 &&
+      diff(k0, k1)[0] === dB.draftId &&
+      diff(c0.actions, c1.actions).length === 0 &&
+      c1.outputs === c0.outputs &&
+      c1.canonical === c0.canonical &&
+      c1.expenses === c0.expenses,
+    `drafts changed: ${diff(k0, k1).length}; weekly actions, outputs, canonical answers and expenses unchanged`,
+  );
+  let deskDouble = false;
+  try {
+    await desk.approveDraft(orgId, dB.draftId, admin.id);
+  } catch {
+    deskDouble = true;
+  }
+  check(
+    'edits',
+    'An approved draft cannot be approved again (response desk)',
+    deskDouble,
+    deskDouble ? 'second approval rejected' : 'second approval went through',
+  );
+
+  k0 = await deskSnap();
+  await desk.rejectDraft(orgId, dC.draftId, admin.id, 'Answered in person.');
+  k1 = await deskSnap();
+  check(
+    'edits',
+    'Rejecting a draft leaves the rest of the queue untouched (response desk)',
+    diff(k0, k1).length === 1 && diff(k0, k1)[0] === dC.draftId,
+    `drafts changed: ${diff(k0, k1).length} of ${Object.keys(k0).length} (the rejected one)`,
   );
 
   // Response loop: confirming one previewed expense writes exactly that one line.
@@ -390,7 +514,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   // 3a. Sample 15 claims across both loops.
   const sampled: { loop: string; claim: string; tracesTo: string; ok: boolean; why: string }[] = [];
-  for (const x of queue.filter((q) => q.covered).slice(0, 8)) {
+  for (const x of queue.filter(usable).slice(0, 8)) {
     const a = x.answer; // reuse the drafted answer (no second model call)
     const src = a.sources[0];
     const p = src ? byId.get(src.passageId) : undefined;
@@ -456,6 +580,39 @@ async function main() {
     sampled.length >= 15 && sampled.every((s) => s.ok),
     `${sampled.filter((s) => s.ok).length}/${sampled.length} traced`,
     sampled,
+  );
+
+  // The reviewer stops bad drafts in code, whatever the drafter wrote.
+  const planted: { case: string; q: string; reply: string; cite: string[]; bad: boolean }[] = [
+    { case: 'invented figure', q: 'What is the hotel limit per night?', reply: 'Hotel stays are reimbursed up to ₹8,000 per night.', cite: ['policy-limit-lodge'], bad: true },
+    { case: 'cites a passage not retrieved', q: 'What is the hotel limit per night?', reply: 'Lodging has a per-item limit of ₹6,000.00.', cite: ['cbic-invoice-place-signature'], bad: true },
+    { case: 'advice', q: 'What is the hotel limit per night?', reply: 'Lodging is capped at ₹6,000.00, so you should invest the savings in a mutual fund.', cite: ['policy-limit-lodge'], bad: true },
+    { case: 'over 3 sentences', q: 'What is the meals limit?', reply: 'Meals have a limit. It is per item. It is ₹1,500.00. There is also a daily limit of ₹2,500.00.', cite: ['policy-limit-meals'], bad: true },
+    { case: 'no citation', q: 'When do I need a receipt?', reply: 'A receipt image is required for any expense above ₹500.00.', cite: [], bad: true },
+    { case: 'grounded (control)', q: 'When do I need a receipt?', reply: 'A receipt image is required for any expense above ₹500.00.', cite: ['policy-receipts'], bad: false },
+  ];
+  const reviewed = [];
+  for (const p of planted) {
+    const o = await plant(p.q, p.reply, p.cite);
+    let approvable = true;
+    try {
+      await desk.approveDraft(orgId, o.draftId, admin.id);
+    } catch {
+      approvable = false;
+    }
+    reviewed.push({
+      case: p.case,
+      verdict: o.review.verdict,
+      blocked: o.review.flags.filter((f) => f.severity === 'block').map((f) => f.message),
+      ok: p.bad ? o.review.verdict === 'reject' && !approvable : o.review.verdict !== 'reject' && approvable,
+    });
+  }
+  check(
+    'grounding',
+    'The reviewer rejects drafts with an invented figure, a wrong citation, advice, >3 sentences or no source, and approval is blocked',
+    reviewed.every((r) => r.ok),
+    `${reviewed.filter((r) => r.ok).length}/${reviewed.length} (${planted.filter((p) => p.bad).length} bad drafts stopped, 1 grounded control approved)`,
+    reviewed,
   );
 
   // 3b. Questions the corpus can't answer say so and name what was searched.
@@ -542,6 +699,8 @@ async function main() {
       union all select title || ' ' || body from published_outputs where org_id = ${orgId}
       union all select themes::text || pulse::text || coalesce(explainer::text, '') from weekly_runs where org_id = ${orgId}
       union all select bullets::text from canonical_answers where org_id = ${orgId}
+      union all select question || ' ' || draft || ' ' || coalesce(final_reply, '') || ' ' || coalesce(reject_reason, '')
+        || ' ' || routing::text || review::text || agents::text from reply_drafts where org_id = ${orgId}
       union all select coalesce(before::text, '') || coalesce(after::text, '') from audit_log where org_id = ${orgId}
     ) x`);
   const stored = String((dump as unknown as { all_text: string | null }[])[0]?.all_text ?? '');
@@ -805,9 +964,13 @@ async function main() {
         .map(
           (x, i) =>
             `## ${i + 1}. ${x.q}\n\n**Draft** (${x.drafter}): ${x.reply}\n\n` +
-            (x.covered ? `**Source:** ${x.source}\n` : `**Not covered.** Searched: ${x.searched.join('; ')}\n`),
+            (x.covered ? `**Source:** ${x.source}\n\n` : `**Not covered.** Searched: ${x.searched.join('; ')}\n\n`) +
+            `**Reviewer:** ${x.verdict}${x.flags.length ? ` (${x.flags.join('; ')})` : ''}\n\n` +
+            `**Routing note (internal):** ${x.routing}\n`,
         )
-        .join('\n'),
+        .join('\n') +
+      `\n## Reviewer rejection (planted draft)\n\n**Question:** ${planted[0].q}\n\n**Draft:** ${planted[0].reply}\n\n` +
+      `**Reviewer:** ${reviewed[0].verdict}: ${reviewed[0].blocked.join(' ')} Approval is blocked until a person edits it so it passes, or rejects it.\n`,
   );
   const outsNow = await db.select().from(schema.publishedOutputs).where(eq(schema.publishedOutputs.orgId, orgId));
   const docEntry = outsNow.find((o) => o.kind === 'doc_entry');

@@ -255,7 +255,7 @@ export const assistantEvents = pgTable(
     userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
     channel: text('channel', { enum: ['voice', 'text'] }).notNull(),
     intent: text('intent').notNull(),
-    // needs_info | previewed | confirmed | cancelled | answered | not_covered | refused | error
+    // needs_info | previewed | confirmed | cancelled | answered | queued | not_covered | refused | error
     outcome: text('outcome').notNull(),
     textRedacted: text('text_redacted').notNull(),
     piiFound: json('pii_found').$type<string[]>().notNull().default([]),
@@ -355,6 +355,55 @@ export const canonicalAnswers = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// reply_drafts  (the response desk's queue). Every policy question that is not
+// refused and has no approved canonical answer becomes one row: the draft the
+// orchestrator assembled from the three agents, the reviewer's verdict and the
+// routing note. Nothing reaches the employee until a person approves the row.
+// Question and reply text are stored REDACTED only.
+// ─────────────────────────────────────────────────────────────────────────────
+export const replyDrafts = pgTable(
+  'reply_drafts',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    /** Who asked: the approved reply is shown back to them. Never shown in the queue. */
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    via: text('via', { enum: ['web', 'mcp'] }).notNull(),
+    channel: text('channel', { enum: ['voice', 'text'] }).notNull(),
+    question: text('question').notNull(),
+    topic: text('topic').notNull(),
+    covered: boolean('covered').notNull(),
+    drafter: text('drafter', { enum: ['model', 'extractive', 'none'] }).notNull(),
+    /** The orchestrator's draft, exactly as the reviewer checked it. */
+    draft: text('draft').notNull(),
+    sources: json('sources')
+      .$type<{ title: string; url: string; lastChecked: string; passageId: string }[]>()
+      .notNull(),
+    searched: json('searched').$type<string[]>().notNull(),
+    /** Orchestrator output: where this goes and why. */
+    routing: json('routing').$type<Record<string, unknown>>().notNull(),
+    /** Reviewer output: verdict (pass | flag | reject) and flags. */
+    review: json('review').$type<Record<string, unknown>>().notNull(),
+    /** What each of the three agents returned, and how long it took. */
+    agents: json('agents').$type<Record<string, unknown>[]>().notNull(),
+    status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+    edited: boolean('edited').notNull().default(false),
+    /** The text the employee sees once approved (the draft, or the human edit). */
+    finalReply: text('final_reply'),
+    rejectReason: text('reject_reason'),
+    decidedBy: text('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('reply_drafts_org_status_idx').on(t.orgId, t.status, t.createdAt),
+    index('reply_drafts_user_idx').on(t.userId, t.createdAt),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Relations (for Drizzle query API)
 // ─────────────────────────────────────────────────────────────────────────────
 export const organisationsRelations = relations(organisations, ({ many, one }) => ({
@@ -450,3 +499,4 @@ export type WeeklyRun = typeof weeklyRuns.$inferSelect;
 export type RunAction = typeof runActions.$inferSelect;
 export type PublishedOutput = typeof publishedOutputs.$inferSelect;
 export type CanonicalAnswer = typeof canonicalAnswers.$inferSelect;
+export type ReplyDraft = typeof replyDrafts.$inferSelect;

@@ -1,11 +1,11 @@
 # Spendwise Desk
 
-A support and policy desk for expense claims at small Indian companies. Employees ask questions and log expenses by voice. Every answer is cited, checked against the expense policy in code, and approved by a person before anything is saved. Each week the system groups what people are confused about into a short pulse for the finance team. Once a canonical explainer is approved, the assistant reuses it.
+A support and policy desk for expense claims at small Indian companies. Employees ask questions and log expenses by voice. Every policy question goes to a response desk: three agents work on it in parallel, an orchestrator writes one cited draft, a reviewer checks it, and a person in finance approves, edits or rejects it before the employee sees anything. Each week the system groups what people are confused about into a short pulse for the finance team. Once a canonical explainer is approved, the assistant reuses it.
 
 Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1 (expense claims run from Claude over MCP).
 
 - **Prototype:** _add the Render URL here after deploying (see [Deploy](#deploy))_
-- **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 19/19 required checks pass against the live model (Groq gpt-oss + Whisper)
+- **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 25/25 required checks pass against the live model (Groq gpt-oss + Whisper)
 - **Demo logins** (password `demo1234`): `riya@acme.test` (employee), `manager@acme.test` (manager), `admin@acme.test` (admin / finance)
 
 ---
@@ -19,8 +19,9 @@ The brief was written for an investment platform. Our instructor allowed any pro
 | Official documents / FAQ corpus | The company's expense policy (read live from the database) plus CBIC's GST tax-invoice rules ([Sources](#sources)) |
 | Reviews CSV | One week of questions people asked the assistant, plus claim lines that were flagged or rejected ([`evals/samples/weekly-inputs.csv`](evals/samples/weekly-inputs.csv)) |
 | Fee or charge confusion | Policy-rule confusion: which bills need a supplier GSTIN, hotel and meal limits, weekend spend |
-| User questions queue | Spoken or typed messages to the Assistant, plus `ask_policy` calls from the employee's own Claude |
-| Reply draft with citation | A cited answer of three sentences or fewer, or a preview card for an action (add expense, approve, reject) |
+| User questions queue | Spoken or typed messages to the Assistant, plus `ask_policy` calls from the employee's own Claude. All of them land on the **response desk** (`/desk`) |
+| Three agents, orchestrator, reviewer | **corpus** (official documents), **signals** (how often this was asked this week, and how many claim lines were flagged on the same rule), **compliance** (personal data, advice requests) run in parallel; the orchestrator writes one draft and an internal routing note; the reviewer checks the draft in code, then with a second model |
+| Reply draft with citation | A cited answer of three sentences or fewer, waiting on the desk for a person to approve, edit or reject. (Expense actions use a preview card the employee confirms) |
 | Product team | Finance / admins |
 | Doc append, email draft | Weekly Log entry, and a saved email draft that is never sent |
 | No buy/sell, returns or PII | No investment, tax-planning or returns advice; PAN, Aadhaar, card, phone, account, email and UPI are redacted everywhere |
@@ -39,10 +40,18 @@ flowchart LR
     G1 --> X["Model: intent + fields<br/>(strict JSON, checked in code)"]
     X --> C1["Code: validate, ask for missing,<br/>policy checks, preview"]
     X --> P["Policy question"]
-    P --> S["Keyword search<br/>over corpus (code)"]
-    S --> K{"Canonical<br/>answer?"}
-    K -- yes --> A1["Reuse approved explainer"]
-    K -- no --> A2["Model answers from passages<br/>code checks citations, ≤3 sentences, scope"]
+    P --> AG
+    subgraph AG["Response desk: 3 agents in parallel"]
+      AC["corpus<br/>search + canonical? + model draft"]
+      AS["signals<br/>asked this week, flagged lines"]
+      AX["compliance<br/>PII removed, advice"]
+    end
+    AC -- canonical exists --> A1["Reuse approved explainer<br/>(already approved)"]
+    AG --> OR["Orchestrator<br/>draft + routing note"]
+    OR --> RV{"Reviewer<br/>code checks block,<br/>model check flags"}
+    RV --> DQ[("reply_drafts<br/>pending")]
+    DQ --> HD["Finance approves / edits / rejects<br/>on /desk"]
+    HD --> YQ["Asker sees the reply<br/>Your questions · get_policy_answer"]
     C1 --> PV["Preview + signed token"]
     PV --> OK["Person confirms → write"]
   end
@@ -57,8 +66,9 @@ flowchart LR
     AP --> LOG["Weekly Log, email draft"]
     AP --> CAN[("canonical_answers")]
   end
-  A2 -. topic .-> E
-  CAN -. reused by .-> K
+  P -. topic .-> E
+  DQ -. desk stats .-> T
+  CAN -. reused by .-> AC
 ```
 
 | Layer | Where |
@@ -66,14 +76,15 @@ flowchart LR
 | Model client: Groq or Claude, Whisper, redaction in and out, refusals as data, JSON replies checked against the schema | [`src/ai/model.ts`](src/ai/model.ts), [`src/ai/schema.ts`](src/ai/schema.ts) |
 | PII redaction (prompts, replies, storage, logs) | [`src/ai/redact.ts`](src/ai/redact.ts), [`src/log.ts`](src/log.ts) |
 | Response loop | [`src/assistant/interpret.ts`](src/assistant/interpret.ts), [`policy.ts`](src/assistant/policy.ts), [`guard.ts`](src/assistant/guard.ts), [`actions.ts`](src/assistant/actions.ts) |
+| Response desk: agents, orchestrator, reviewer, queue | [`src/desk/agents.ts`](src/desk/agents.ts), [`desk.ts`](src/desk/desk.ts), [`reviewer.ts`](src/desk/reviewer.ts) |
 | Corpus and retrieval | [`src/corpus/`](src/corpus) |
 | Weekly loop, approval gate, canonical answers, scheduler | [`src/pulse/`](src/pulse) |
 | Expense domain (claims, policy checks, audit log) | [`src/domain/`](src/domain) |
-| MCP server (11 tools) | [`src/mcp/`](src/mcp) |
+| MCP server (12 tools) | [`src/mcp/`](src/mcp) |
 | Web app (Express + EJS, no build step) | [`src/web/`](src/web) |
 | Evals | [`evals/`](evals) |
 
-Stack: Node 22, TypeScript, Express, Postgres (Neon) with Drizzle, and the MCP TypeScript SDK. The language model is **Groq** (`openai/gpt-oss-120b` for answers and the pulse, `openai/gpt-oss-20b` for intent, both with strict JSON-schema output), with **Claude** (`claude-opus-5-5`) as a drop-in alternative chosen by `AI_PROVIDER`. Voice is recorded in the browser and transcribed by **Whisper** (`whisper-large-v3-turbo` on Groq); where that is unavailable, the browser's own speech recognition (`en-IN`) is used. Replies are read aloud with the browser's speech synthesis.
+Stack: Node 22, TypeScript, Express, Postgres (Neon) with Drizzle, and the MCP TypeScript SDK. The language model is **Groq** (`openai/gpt-oss-120b` for answers and the pulse, `openai/gpt-oss-20b` for intent and the reviewer's second read, all with strict JSON-schema output), with **Claude** (`claude-opus-5-5`) as a drop-in alternative chosen by `AI_PROVIDER`. Voice is recorded in the browser and transcribed by **Whisper** (`whisper-large-v3-turbo` on Groq); where that is unavailable, the browser's own speech recognition (`en-IN`) is used. Replies are read aloud with the browser's speech synthesis.
 
 ### Where the line is drawn between the model and code
 
@@ -82,7 +93,8 @@ The model is used only where language understanding is needed. Everything that m
 | The model does | Code does |
 |---|---|
 | Works out the intent and fields of a message (*"paanch sau ka lunch kal"* → log_expense, ₹500, MEALS, yesterday) | Validates every field (amount range, real date, not in the future, category exists, claim is the user's draft) and asks for what is missing, one question at a time |
-| Answers a policy question from the retrieved passages | Retrieves the passages; rejects an answer that cites a passage it was not given; caps it at 3 sentences; blocks advice and return figures |
+| Answers a policy question from the retrieved passages | Retrieves the passages; the reviewer rejects a draft that cites a passage it was not given, has more than 3 sentences, states a number that is not in the cited passage, or gives advice |
+| Reads the draft a second time as the reviewer and says whether every fact is in the cited passage | Decides the verdict. The model reviewer can only add a *flag* for the person on the desk; it can never approve a draft or block one. Code blocks; a person approves |
 | Writes the pulse summary, 3 action ideas and the explainer bullets | Groups themes, counts, ids, quotes and the window; enforces 250 words and 6 bullets; keeps only bullets that cite a real passage |
 | — | Policy checks (limits, GSTIN, weekend, duplicates), the advice guard, PII redaction, permissions, every database write |
 
@@ -99,12 +111,25 @@ When the model is unavailable, the system says so instead of guessing. Policy an
 3. The model returns only `{intent, amount, date, merchant, category, claim, note, question}` as strict JSON. Code checks the shape again, retries once, and never acts on a reply that does not fit.
 4. What happens next depends on the intent:
    - **log_expense:** code checks each field and asks follow-up questions. It then runs the policy checks and shows a **preview card** with flags (e.g. *Over item limit*).
-   - **policy_question:** search the corpus, then reuse a **canonical answer** if one exists; otherwise the model drafts from the passages and code checks the draft. The reply shows the **source link and last-checked date**. If nothing matches: *"I couldn't find this… I searched X and Y."*
+   - **policy_question:** goes to the **response desk** (below). If finance has already approved a **canonical answer** for the topic, the employee gets it at once, with its **source link and last-checked date**. Otherwise they hear *"I've drafted an answer… Finance checks every new answer before it is sent"*, and the approved reply appears later under **Your questions**. If nothing matches: *"I couldn't find this… I searched X and Y. I've passed your question to the finance desk."*
    - **claim_status:** answered from the database.
    - **approve_claim / reject_claim** (managers): a preview, and a reason is required to reject.
 5. Nothing is saved until the person presses the confirm button.
 
 Every turn is stored in `assistant_events` with **redacted text only**, plus its topic (the passage it matched). These rows feed the weekly loop.
+
+#### The response desk: `/desk` (admins / finance)
+
+Every policy question that is not refused and has no approved canonical answer, from the web or from MCP, goes through [`src/desk/`](src/desk):
+
+1. **Three agents run in parallel** ([`agents.ts`](src/desk/agents.ts)), each on a different data source:
+   - **corpus**: the official documents. Retrieves passages, checks for a canonical answer, otherwise has the model draft from the passages.
+   - **signals**: what people are confused about. How many times this topic was asked in the last 7 days, and how many claim lines were flagged on the same rule (for example `MISSING_GSTIN` on the GSTIN rule).
+   - **compliance**: the question itself. Which personal data had to be removed, and whether it asks for advice.
+2. **The orchestrator** ([`desk.ts`](src/desk/desk.ts)) merges them into one draft and an **internal routing note**, for example: *"Finance desk: expense policy. Supplier GSTIN. Asked 8 times in the last 7 days (5+: it will be in the weekly pulse). 3 claim lines flagged on this rule this week (Missing GSTIN). No approved explainer yet: approving one on the pulse page would answer this automatically."*
+3. **The reviewer** ([`reviewer.ts`](src/desk/reviewer.ts)) checks the draft. Code checks **block**: no source, a citation that was not retrieved, more than 3 sentences, a number that is not in the cited passage, advice or return figures. If those pass, a second model reads the draft against its passages and can only **flag** it. The verdict is *pass*, *flagged* or *rejected*.
+4. The draft waits on `/desk` with its citations, last-checked dates, reviewer flags, routing note and what each agent found. A person **approves** it (sent to the asker), **edits** it (the edit is redacted and re-checked in code against the same sources; an edit that fails is refused and the draft stays as it was), or **rejects** it (the asker sees it was declined, with the reason if one is given). A draft the reviewer rejected cannot be approved until an edit makes it pass.
+5. The asker sees the approved reply under **Your questions** on `/assistant`, or through `get_policy_answer` in their own Claude.
 
 ### 2. Weekly loop: `/pulse` (admins)
 
@@ -119,7 +144,8 @@ It is triggered by the **Run weekly loop now** button, by `PULSE_SCHEDULE=weekly
 ### How the loops connect
 
 - **Response → weekly.** Each question is stored with the passage it matched. If the same topic is asked 5+ times in the window, it is marked *repeated* and always shown in the pulse (*"Asked 5+ times this week: Supplier GSTIN (7)"*), even if it would otherwise fall outside the top themes.
-- **Weekly → response.** Approving the explainer writes it to `canonical_answers`. The next policy question on that topic is answered **from the approved text, without calling the model**. The reply carries an *Approved answer* badge, and each reuse is counted. The next run sees the topic is already canonical and does not ask again. Admins can retire a canonical answer under *Pulse → Canonical answers*.
+- **Response → weekly (desk).** The pulse page also counts the desk's week: drafts queued, approved, edited, rejected by finance, and stopped by the reviewer. The signals agent reads the same 5+ rule, so the routing note tells the reviewer when a question is about to show up in the pulse.
+- **Weekly → response.** Approving the explainer writes it to `canonical_answers`. The next policy question on that topic is answered **from the approved text, without calling the model and without going through the desk queue**, because a person already approved that text. The reply carries an *Approved answer* badge, and each reuse is counted. The next run sees the topic is already canonical and does not ask again. Admins can retire a canonical answer under *Pulse → Canonical answers*.
 
 Both directions are tested ([`tests/integration/weekly.test.ts`](tests/integration/weekly.test.ts)).
 
@@ -131,7 +157,8 @@ Nothing is written or sent unless a person approves that specific action.
 
 | Loop | Gate | Guarantees |
 |---|---|---|
-| Response | The preview card → `POST /assistant/confirm` ([`src/assistant/actions.ts`](src/assistant/actions.ts)) | The interpreter never writes. A preview carries an HMAC-signed token that holds **exactly the previewed action**, is tied to the user, expires after 15 minutes, and can be confirmed **once**. Permission checks run again on confirm. An edited token is rejected. |
+| Response: policy answers | `/desk` → `POST /desk/drafts/:id/approve` ([`src/desk/desk.ts`](src/desk/desk.ts)) | No policy answer reaches the asker until a person approves **that draft**. The page says exactly what approving writes: one reply, shown to the person who asked. Approving, editing or rejecting changes only that row; a decided draft cannot be decided again; a draft the reviewer rejected cannot be approved as written. Canonical answers skip the queue only because a person already approved them on `/pulse`. |
+| Response: expense actions | The preview card → `POST /assistant/confirm` ([`src/assistant/actions.ts`](src/assistant/actions.ts)) | The interpreter never writes. A preview carries an HMAC-signed token that holds **exactly the previewed action**, is tied to the user, expires after 15 minutes, and can be confirmed **once**. Permission checks run again on confirm. An edited token is rejected. |
 | Weekly | `run_actions` rows on the approval screen ([`src/pulse/approvals.ts`](src/pulse/approvals.ts)) | Each action shows **what** will be written and **where** (Weekly Log, email draft *"never sent"*, canonical answer). It can be approved, edited or rejected **on its own**; approving one never triggers another; a decided action cannot be decided again; edits are redacted again. Explainers cannot be edited, so every bullet keeps its citation. |
 
 ---
@@ -164,10 +191,10 @@ Public, official sources only. No blogs and no app screenshots. Every passage, w
 
 ## Scope enforcement (in code, not only in prompts)
 
-- **Facts only.** [`guard.ts`](src/assistant/guard.ts) refuses investment, tax-planning, buy/sell and returns requests *before* the model runs, in the web assistant and over MCP. `violatesScope()` also checks model output: recommendations or return figures turn an answer into *"not covered"*.
-- **Citations.** An answer is shown only if every passage it cites was actually retrieved.
+- **Facts only.** [`guard.ts`](src/assistant/guard.ts) refuses investment, tax-planning, buy/sell and returns requests *before* the model runs, in the web assistant and over MCP. `violatesScope()` also checks model output: on the desk, a draft with a recommendation or a return figure is rejected by the reviewer and cannot be approved as written; in the weekly loop such a bullet is dropped.
+- **Citations and numbers.** A draft can be approved only if it cites a passage, every passage it cites was actually retrieved, and every number in it appears in a cited passage or the question. A person's edit goes through the same checks.
 - **Length caps.** Replies ≤3 sentences, pulse ≤250 words, explainer ≤6 bullets, all enforced after generation.
-- **No PII.** [`redact.ts`](src/ai/redact.ts) replaces PAN, Aadhaar, card (Luhn-checked), phone, bank account, email, UPI ids and connector tokens with `[PAN]`, `[PHONE]` and so on: before text reaches the model, on the model's reply, before anything is stored (`assistant_events`, `run_actions`, outputs), and in every error log ([`log.ts`](src/log.ts)). GSTINs are kept on purpose: they are public business tax ids that claims need. Email recipients are stored as roles ("Finance team"), never as addresses.
+- **No PII.** [`redact.ts`](src/ai/redact.ts) replaces PAN, Aadhaar, card (Luhn-checked), phone, bank account, email, UPI ids and connector tokens with `[PAN]`, `[PHONE]` and so on: before text reaches the model, on the model's reply, before anything is stored (`assistant_events`, `reply_drafts` and the agents' notes, `run_actions`, outputs, reject reasons), and in every error log ([`log.ts`](src/log.ts)). GSTINs are kept on purpose: they are public business tax ids that claims need. Email recipients are stored as roles ("Finance team"), never as addresses.
 
 ---
 
@@ -182,10 +209,10 @@ This runs over the assembled system (database, both loops, the HTTP server and a
 
 | Check | What it does | Result |
 |---|---|---|
-| **1. Feasibility** | 12 queued questions → each gets a cited draft or an explicit "not covered" (≤3 sentences); the loop runs from the scheduler path with no human step; themes ≤5, each with ids and a window; pulse ≤250 words; explainer ≤6 bullets with sources | 6/6 |
-| **2. Correctness of edits** | Diffs database state before and after: an edit changes only that draft; approving one action writes only that action; rejecting touches nothing else; confirming one reply draft writes one line; no double approval or replay | 6/6 |
-| **3. Grounding and compliance** | 15 claims sampled from both loops trace to a source passage (every ₹ amount must appear in it) or to existing ids; uncovered questions say so (web + MCP); 16 advice and return-figure requests × 2 repeats × 2 channels are refused and never reach the pulse; PAN / account / phone in 6 phrasings × 2 repeats × 2 channels plus a pulse edit and an error path, then every table and every captured log line is searched for the raw values | 7/7 |
-| Model-dependent (Groq) | Intent accuracy on 21 spoken and Hinglish utterances (and the expense fields); whether the model's answers cite the expected passage; 8 audio clips → Whisper → intent, including a spoken PAN that must be redacted | 21/21 intent, 8/8 fields · 28/28 cited · 8/8 voice end to end |
+| **1. Feasibility** | 12 questions through the response desk → each gets a cited draft or an explicit "not covered" (≤3 sentences), each run by all three agents with a routing note and a reviewer verdict, and all wait for a person (none sent); the loop runs from the scheduler path with no human step; themes ≤5, each with ids and a window; pulse ≤250 words; explainer ≤6 bullets with sources | 7/7 |
+| **2. Correctness of edits** | Diffs database state before and after, for weekly actions **and** desk reply drafts: an edit changes only that draft (and an edit with an invented figure is refused and changes nothing); approving one writes only that one; rejecting touches nothing else; no double approval; confirming one expense preview writes one line, with no replay | 10/10 |
+| **3. Grounding and compliance** | 15 claims sampled from both loops trace to a source passage (every ₹ amount must appear in it) or to existing ids; the reviewer rejects planted drafts with an invented figure, a wrong citation, advice, >3 sentences or no source, and blocks their approval (a grounded control is approved); uncovered questions say so (web + MCP); 16 advice and return-figure requests × 2 repeats × 2 channels are refused and never reach the pulse; PAN / account / phone in 6 phrasings × 2 repeats × 2 channels plus a pulse edit and an error path, then every table (including reply drafts and the agents' notes) and every captured log line is searched for the raw values | 8/8 |
+| Model-dependent (Groq) | Intent accuracy on 21 spoken and Hinglish utterances (and the expense fields); whether the model's answers cite the expected passage; 8 audio clips → Whisper → intent, including a spoken PAN that must be redacted | 21/21 intent, 8/8 fields · 27/28 cited · 8/8 voice end to end |
 
 **Iteration** (same labelled data, earlier versions kept in [`evals/legacy/`](evals/legacy)):
 
@@ -199,7 +226,7 @@ The first live run against Groq found three more problems, each now fixed in cod
 
 Each version change came from a failure the system showed on real input. A real run sent hotel and GSTIN questions to catch-all passages (→ retrieval v2). The demo data contained *"Should I put my reimbursement into a mutual fund?"* and the guard missed it (→ v2). The eval then found two more misses and a false refusal (→ v3). The routing questions overlap the ones used for tuning, so 100% overstates what retrieval will do on new phrasings.
 
-Unit and integration tests: `TEST_DATABASE_URL=postgresql://localhost/spendwise_test npm test` (257 tests).
+Unit and integration tests: `TEST_DATABASE_URL=postgresql://localhost/spendwise_test npm test` (277 tests).
 
 ---
 
@@ -207,7 +234,8 @@ Unit and integration tests: `TEST_DATABASE_URL=postgresql://localhost/spendwise_
 
 | Page | Who | What |
 |---|---|---|
-| `/assistant` | everyone | Mic and text box, replies read aloud, follow-up chips, preview cards with flags, cited answers with source and last-checked date, *Approved answer* badge |
+| `/assistant` | everyone | Mic and text box, replies read aloud, follow-up chips, preview cards with flags, *Approved answer* badge for canonical answers, and **Your questions**: each policy question's status and, once approved, the reply with its source and last-checked date |
+| `/desk`, `/desk/decided` | admins | **Queue view**: each question with its reply draft, citations and last-checked dates, reviewer verdict and flags, routing note, what each of the three agents found; approve, edit or reject each one |
 | `/pulse` | admins | Stats, themes with counts, quotes and traceable ids, pulse and explainer drafts, **approval screen** |
 | `/pulse/log` | admins | Weekly Log entries and email drafts written so far |
 | `/pulse/canonical` | admins | Canonical answers the assistant reuses (times reused, sources, retire) |
@@ -216,7 +244,7 @@ Unit and integration tests: `TEST_DATABASE_URL=postgresql://localhost/spendwise_
 
 ### MCP tools (for the employee's own Claude)
 
-`get_policy`, `create_claim`, `add_expenses`, `update_expense`, `submit_claim`, `list_my_claims`, `get_claim`, `list_pending_approvals`, `decide_claim`, `get_spend_report` (all from v1), plus **`ask_policy`**: the same cited answers, the same guard and the same redaction as the web assistant. Each tool authenticates with a per-user token in the URL (stored hashed, revocable) and runs with that user's permissions.
+`get_policy`, `create_claim`, `add_expenses`, `update_expense`, `submit_claim`, `list_my_claims`, `get_claim`, `list_pending_approvals`, `decide_claim`, `get_spend_report` (all from v1), plus **`ask_policy`** (the same desk, guard and redaction as the web assistant: an approved canonical answer comes back at once, anything else returns `in_review` with a `question_id`) and **`get_policy_answer`** (the approved, cited reply once finance has decided). Each tool authenticates with a per-user token in the URL (stored hashed, revocable) and runs with that user's permissions.
 
 ---
 
@@ -228,7 +256,7 @@ Requires Node 22+ and Postgres 14+.
 npm install
 cp .env.example .env.local     # set DATABASE_URL, SESSION_SECRET, GROQ_API_KEY
 npm run migrate
-npm run seed                   # demo org, a week of questions, a flagged draft claim (-- --reset to recreate)
+npm run seed                   # demo org, a week of questions, a flagged draft claim, a desk queue (-- --reset to recreate)
 npm run dev                    # http://localhost:3000
 ```
 
@@ -270,6 +298,9 @@ The Dockerfile works on other hosts (it runs as a non-root user, has a health ch
 - **One public source.** Only CBIC's tax-invoice page could be fetched and verified. Blocked input tax credit (section 17(5)) and the GSTIN structure are not covered, so the assistant says so.
 - **Keyword retrieval, not embeddings.** It is deterministic and explainable over about 25 passages, but it relies on a hand-written synonym map. A new phrasing for an unmapped word can miss, and the system then says "not covered" rather than guessing. The 100% routing score overstates this (see Evaluations).
 - **Voice audio goes to Groq.** With Whisper, each clip is sent to Groq once for transcription and is not stored by Spendwise; only the redacted text is kept. Without a Groq key, voice falls back to the browser's recogniser (Chrome and Edge only).
+- **Two of the three desk agents are code, not language models.** The signals and compliance agents are database queries and pattern checks. They run in parallel with the corpus agent and feed the orchestrator like agents do, but they do not reason. That is on purpose (counts and PII detection must be exact), but it is not three LLM agents.
+- **Answers are no longer instant.** A new policy answer waits until someone in finance approves it. Topics with an approved explainer are still answered at once, so the wait shrinks as canonical answers build up. Nothing notifies the employee yet; they check *Your questions*.
+- **The model reviewer is a smaller model.** It reads only drafts the code checks let through, can only flag, and is skipped without an AI key. It will miss some unsupported claims; the code checks and the person on the desk are the gate.
 - **Advice guard is a pattern list.** It is backed by the model's own `advice_request` intent and the output check, but a determined new phrasing could still get past the code layer.
 - **Open models on a free tier.** gpt-oss on Groq is fast and free but can be weaker than Claude Opus on Hinglish and on staying within the passages; the code checks catch bad replies, and the evals measure the rest. Free-tier rate limits make the full eval take several minutes.
 - **Demo data is synthetic.** The weekly inputs are seeded, not real user traffic.
@@ -283,8 +314,8 @@ The Dockerfile works on other hosts (it runs as a non-root user, has a health ch
 | Rubric | Where to look |
 |---|---|
 | Voice UX & intent handling (25%) | `/assistant`: mic with Whisper (any browser) and silence detection, Hinglish, follow-up questions, chips, preview cards, read-aloud; `interpret.ts`; intent eval |
-| MCP usage & system design (20%) | 11 MCP tools incl. `ask_policy`; the architecture above; the model-vs-code split; two approval gates |
-| Grounding & RAG quality (15%) | Corpus, retrieval, citation checks, "not covered" with what was searched, `/sources`, canonical reuse |
+| MCP usage & system design (20%) | 12 MCP tools incl. `ask_policy` and `get_policy_answer`; three agents → orchestrator → reviewer on the response desk; the model-vs-code split; approval gates on both loops |
+| Grounding & RAG quality (15%) | Corpus, retrieval, the reviewer's citation and number checks, "not covered" with what was searched, `/sources`, canonical reuse |
 | AI evals & iteration depth (20%) | `npm run eval`, `evals/RESULTS.md`, v1 → v2 → v3 tables |
-| Workflow automation (10%) | Weekly loop on schedule / cron / button, approval actions, Weekly Log and email draft |
-| Deployment & code quality (10%) | Render blueprint, Dockerfile, CI (typecheck, lint, 257 tests, evals, smoke test, Docker build) |
+| Workflow automation (10%) | Weekly loop on schedule / cron / button; the response desk queue; approval actions; Weekly Log and email draft |
+| Deployment & code quality (10%) | Render blueprint, Dockerfile, CI (typecheck, lint, 277 tests, evals, smoke test, Docker build) |

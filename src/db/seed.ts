@@ -28,7 +28,7 @@ import { DEFAULT_CATEGORIES } from '../domain/org.js';
 import { connectorUrl, hashToken } from '../domain/tokens.js';
 import { validateGSTIN } from '../domain/gstin.js';
 import { deleteReceipts, uploadReceipt } from '../storage/index.js';
-import { seedAssistantEvents, seedRecentClaim } from './seed-assistant.js';
+import { seedAssistantEvents, seedRecentClaim, seedReplyDrafts } from './seed-assistant.js';
 
 export const DEMO_ORG_NAME = 'Acme Travel Pvt Ltd';
 export const DEMO_PASSWORD = 'demo1234';
@@ -473,6 +473,8 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<SeedResult | nul
   const n = await seedAssistantEvents(orgId, [ids.riya, ids.arjun, ids.riya, ids.manager]);
   await seedRecentClaim(orgId, ids.arjun);
   log(`Added ${n} assistant events and a flagged draft claim from the last 7 days (for the weekly pulse).`);
+  const nd = await seedReplyDrafts(orgId, [ids.riya, ids.arjun], ids.admin);
+  log(`Added ${nd} reply drafts to the response desk (one approved, one stopped by the reviewer).`);
 
   // Re-attach the demo users' previous connector tokens to the recreated users
   const idByEmail: Record<string, string> = {

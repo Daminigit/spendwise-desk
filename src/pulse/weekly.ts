@@ -21,7 +21,16 @@
 import { randomUUID } from 'crypto';
 import { and, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { assistantEvents, categories, claims, expenses, runActions, weeklyRuns, type WeeklyRun } from '../db/schema.js';
+import {
+  assistantEvents,
+  categories,
+  claims,
+  expenses,
+  replyDrafts,
+  runActions,
+  weeklyRuns,
+  type WeeklyRun,
+} from '../db/schema.js';
 import { askJson, AiUnavailableError } from '../ai/model.js';
 import { redactText } from '../ai/redact.js';
 import { loadCorpus, todayIso, type Passage } from '../corpus/corpus.js';
@@ -146,6 +155,12 @@ export interface Gathered {
     expensesLogged: number;
     flaggedLines: number;
     rejectedLines: number;
+    deskDrafts: number;
+    deskApproved: number;
+    deskEdited: number;
+    deskDeclined: number;
+    deskReviewerRejected: number;
+    deskPending: number;
   };
 }
 
@@ -181,6 +196,12 @@ export async function gather(orgId: string, w: Window, passages: Passage[]): Pro
           or (${expenses.status} = 'rejected' and ${expenses.updatedAt} >= ${from.toISOString()}::timestamptz and ${expenses.updatedAt} < ${to.toISOString()}::timestamptz))`,
       ),
     );
+
+  // The response desk this week: drafts queued, and what the reviewer and finance did with them.
+  const desk = await db
+    .select({ status: replyDrafts.status, edited: replyDrafts.edited, review: replyDrafts.review })
+    .from(replyDrafts)
+    .where(and(eq(replyDrafts.orgId, orgId), gte(replyDrafts.createdAt, from), lt(replyDrafts.createdAt, to)));
 
   const themes = new Map<string, Theme>();
   const theme = (key: string): Theme => {
@@ -271,6 +292,12 @@ export async function gather(orgId: string, w: Window, passages: Passage[]): Pro
       expensesLogged: events.filter((e) => e.intent === 'log_expense' && e.outcome === 'confirmed').length,
       flaggedLines: lines.filter((l) => l.createdAt >= f && l.createdAt < to && l.flags.length > 0).length,
       rejectedLines: lines.filter((l) => l.status === 'rejected' && l.updatedAt >= f && l.updatedAt < to).length,
+      deskDrafts: desk.length,
+      deskApproved: desk.filter((d) => d.status === 'approved').length,
+      deskEdited: desk.filter((d) => d.edited).length,
+      deskDeclined: desk.filter((d) => d.status === 'rejected').length,
+      deskReviewerRejected: desk.filter((d) => (d.review as { verdict?: string }).verdict === 'reject').length,
+      deskPending: desk.filter((d) => d.status === 'pending').length,
     },
   };
 }

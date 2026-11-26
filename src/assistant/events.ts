@@ -13,7 +13,7 @@ import { redact, redactDeep } from '../ai/redact.js';
 
 export type Channel = 'voice' | 'text';
 export type Outcome =
-  'needs_info' | 'previewed' | 'confirmed' | 'cancelled' | 'answered' | 'not_covered' | 'refused' | 'error';
+  'needs_info' | 'previewed' | 'confirmed' | 'cancelled' | 'answered' | 'queued' | 'not_covered' | 'refused' | 'error';
 
 export async function recordEvent(e: {
   orgId: string;

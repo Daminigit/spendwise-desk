@@ -21,6 +21,54 @@
   let channel = 'text';
   let busy = false;
 
+  // ── Your questions (answers appear here once finance approves them) ───────
+  const questionsBox = document.querySelector('[data-questions]');
+  async function refreshQuestions() {
+    if (!questionsBox) return;
+    try {
+      const res = await fetch('/assistant/questions', { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+      const { questions } = await res.json();
+      const list = document.createElement('ul');
+      list.className = 'my-questions';
+      questions.forEach((q) => {
+        const li = document.createElement('li');
+        const head = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = `“${q.question}” `;
+        const badge = document.createElement('span');
+        badge.className = `badge ${q.status === 'answered' ? 'status-approved' : q.status === 'declined' ? 'status-rejected' : 'flag'}`;
+        badge.textContent = q.status === 'answered' ? 'answered' : q.status === 'declined' ? 'declined' : 'with finance';
+        head.append(strong, badge);
+        li.appendChild(head);
+        if (q.reply) {
+          const p = document.createElement('div');
+          p.textContent = q.reply;
+          li.appendChild(p);
+        }
+        q.sources.forEach((s) => {
+          const row = document.createElement('div');
+          row.className = 'small';
+          const a = document.createElement('a');
+          a.href = s.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = `Source: ${s.title}`;
+          row.append(a, document.createTextNode(` · last checked ${s.lastChecked}`));
+          li.appendChild(row);
+        });
+        list.appendChild(li);
+      });
+      const empty = document.createElement('p');
+      empty.className = 'muted small';
+      empty.textContent = 'No questions yet.';
+      questionsBox.replaceChildren(questions.length ? list : empty);
+    } catch {
+      /* keep what is shown */
+    }
+  }
+  refreshQuestions();
+
   // ── Rendering ──────────────────────────────────────────────────────────────
   function bubble(text, who, extraClass) {
     const div = document.createElement('div');
@@ -61,6 +109,12 @@
     if (!policy) return;
     const box = document.createElement('div');
     box.className = 'policy-sources small';
+    if (policy.queued) {
+      const q = document.createElement('div');
+      q.className = 'badge flag';
+      q.textContent = 'Waiting for finance review';
+      box.appendChild(q);
+    }
     if (policy.canonical) {
       const c = document.createElement('div');
       c.className = 'badge source';
@@ -188,6 +242,7 @@
         b.appendChild(n);
       }
       renderPolicy(r.policy, b);
+      if (r.policy && r.policy.queued) refreshQuestions();
       renderOptions(r.options);
       if (r.preview) renderPreview(r.preview);
       speak(r.reply);

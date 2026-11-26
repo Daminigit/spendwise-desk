@@ -26,6 +26,7 @@ import { registerListPendingApprovals } from './tools/list_pending_approvals.js'
 import { registerDecideClaim } from './tools/decide_claim.js';
 import { registerGetSpendReport } from './tools/get_spend_report.js';
 import { registerAskPolicy } from './tools/ask_policy.js';
+import { registerGetPolicyAnswer } from './tools/get_policy_answer.js';
 
 const INSTRUCTIONS =
   'Spendwise records expense claims for the connected user. Typical flow: call get_policy first, read the ' +
@@ -49,6 +50,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
   registerDecideClaim(server, ctx);
   registerGetSpendReport(server, ctx);
   registerAskPolicy(server, ctx);
+  registerGetPolicyAnswer(server, ctx);
   return server;
 }
 

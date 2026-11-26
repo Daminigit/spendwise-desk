@@ -1,9 +1,9 @@
 {
-  "ranAt": "2026-11-26T14:52:59.218Z",
+  "ranAt": "2026-11-26T15:40:59.720Z",
   "model": "Groq openai/gpt-oss-120b (intent: openai/gpt-oss-20b)",
   "summary": {
-    "required": 19,
-    "passed": 19,
+    "required": 25,
+    "passed": 25,
     "failed": 0,
     "skipped": 0
   },
@@ -12,49 +12,101 @@
       "group": "feasibility",
       "name": "Every queued question gets a cited draft or an explicit \"not covered\"",
       "pass": true,
-      "detail": "12/12 (8 drafted, 4 not covered)",
+      "detail": "12/12 (8 drafted, 0 stopped by the reviewer, 4 not covered)",
       "data": [
         {
           "q": "What is the hotel limit per night?",
           "reply": "The hotel limit is ₹6,000 per night.",
           "covered": true,
           "drafter": "model",
-          "source": "Acme Travel Pvt Ltd expense policy: Lodging limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
+          "source": "Acme Travel Pvt Ltd expense policy: Policy notes (http://localhost:3000/settings/policy, checked 2026-11-26)",
           "searched": [
             "Acme Travel Pvt Ltd expense policy",
             "CGST Invoice Rules: Tax invoice",
             "terms: hotel, limit, night, lodging"
           ],
           "answer": {
-            "reply": "The hotel limit is ₹6,000 per night.",
-            "covered": true,
-            "sources": [
-              {
-                "title": "Acme Travel Pvt Ltd expense policy: Lodging limits",
-                "url": "http://localhost:3000/settings/policy",
-                "lastChecked": "2026-11-26",
-                "passageId": "policy-limit-lodge"
-              },
-              {
-                "title": "Acme Travel Pvt Ltd expense policy: Policy notes",
-                "url": "http://localhost:3000/settings/policy",
-                "lastChecked": "2026-11-26",
-                "passageId": "policy-notes"
-              }
-            ],
             "searched": [
               "Acme Travel Pvt Ltd expense policy",
               "CGST Invoice Rules: Tax invoice",
               "terms: hotel, limit, night, lodging"
             ],
             "topic": "policy-limit-lodge",
+            "retrieved": [
+              {
+                "id": "policy-limit-lodge",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Lodging limits",
+                "text": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-notes",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Policy notes",
+                "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
+              },
+              {
+                "id": "policy-limit-other",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Other limits",
+                "text": "Other (OTHER): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-limit-sw",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Software limits",
+                "text": "Software (SW): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              }
+            ],
+            "bestScore": 4.95199716010312,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "The hotel limit is ₹6,000 per night.",
+            "covered": true,
+            "sources": [
+              {
+                "title": "Acme Travel Pvt Ltd expense policy: Policy notes",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "passageId": "policy-notes"
+              },
+              {
+                "title": "Acme Travel Pvt Ltd expense policy: Lodging limits",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "passageId": "policy-limit-lodge"
+              }
+            ],
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "0e519cf9-161d-4ce3-b59c-d6316450dcca",
+          "verdict": "pass",
+          "flags": [
+            "info: Asked 5 times this week."
+          ],
+          "routing": "Finance desk: expense policy. Lodging limits. Asked 5 times in the last 7 days (5+: it will be in the weekly pulse). No approved explainer yet: approving one on the pulse page would answer this automatically.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "Do I need a GSTIN on a ₹2,500 bill?",
-          "reply": "Yes, a GSTIN is required because the expense exceeds ₹2,000.",
+          "reply": "Yes. A supplier GSTIN is required for any expense above ₹2,000.00.",
           "covered": true,
           "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Supplier GSTIN (http://localhost:3000/settings/policy, checked 2026-11-26)",
@@ -64,7 +116,54 @@
             "terms: gstin, ₹2, 500, bill, receipt, invoice"
           ],
           "answer": {
-            "reply": "Yes, a GSTIN is required because the expense exceeds ₹2,000.",
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: gstin, ₹2, 500, bill, receipt, invoice"
+            ],
+            "topic": "policy-gstin",
+            "retrieved": [
+              {
+                "id": "policy-gstin",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Supplier GSTIN",
+                "text": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver."
+              },
+              {
+                "id": "policy-limit-meals",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Meals limits",
+                "text": "Meals (MEALS): per-item limit ₹1,500.00; daily limit ₹2,500.00. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-receipts",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Receipts",
+                "text": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted."
+              },
+              {
+                "id": "policy-flags",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "How policy checks work",
+                "text": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding."
+              }
+            ],
+            "bestScore": 6.378890864171122,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "Yes. A supplier GSTIN is required for any expense above ₹2,000.00.",
             "covered": true,
             "sources": [
               {
@@ -74,19 +173,24 @@
                 "passageId": "policy-gstin"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: gstin, ₹2, 500, bill, receipt, invoice"
-            ],
-            "topic": "policy-gstin",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "61413845-623d-4fe6-9e1d-fc3d286c3d44",
+          "verdict": "pass",
+          "flags": [
+            "info: Asked 8 times this week."
+          ],
+          "routing": "Finance desk: expense policy. Supplier GSTIN. Asked 8 times in the last 7 days (5+: it will be in the weekly pulse). 3 claim lines flagged on this rule this week (Missing GSTIN). No approved explainer yet: approving one on the pulse page would answer this automatically.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "When do I need to attach a receipt?",
-          "reply": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted.",
+          "reply": "A receipt image is required for any expense above ₹500.00.",
           "covered": true,
           "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Receipts (http://localhost:3000/settings/policy, checked 2026-11-26)",
@@ -96,7 +200,45 @@
             "terms: attach, receipt"
           ],
           "answer": {
-            "reply": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted.",
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: attach, receipt"
+            ],
+            "topic": "policy-receipts",
+            "retrieved": [
+              {
+                "id": "policy-receipts",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Receipts",
+                "text": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted."
+              },
+              {
+                "id": "policy-notes",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Policy notes",
+                "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
+              },
+              {
+                "id": "policy-flags",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "How policy checks work",
+                "text": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding."
+              }
+            ],
+            "bestScore": 5.559592551436772,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "A receipt image is required for any expense above ₹500.00.",
             "covered": true,
             "sources": [
               {
@@ -106,19 +248,22 @@
                 "passageId": "policy-receipts"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: attach, receipt"
-            ],
-            "topic": "policy-receipts",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "a93f3393-0109-4477-ba92-0a92440bbc4b",
+          "verdict": "pass",
+          "flags": [],
+          "routing": "Finance desk: expense policy. Receipts. Asked 2 times in the last 7 days.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "Can I claim a cab on Sunday?",
-          "reply": "Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver.",
+          "reply": "Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit.",
           "covered": true,
           "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Weekend spend (http://localhost:3000/settings/policy, checked 2026-11-26)",
@@ -128,7 +273,45 @@
             "terms: cab, sunday, travel, weekend"
           ],
           "answer": {
-            "reply": "Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver.",
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: cab, sunday, travel, weekend"
+            ],
+            "topic": "policy-weekend",
+            "retrieved": [
+              {
+                "id": "policy-weekend",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Weekend spend",
+                "text": "Expenses dated on a Saturday or Sunday are allowed but flagged for the approver to check."
+              },
+              {
+                "id": "policy-limit-travel",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Travel limits",
+                "text": "Travel (TRAVEL): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-categories",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Expense categories",
+                "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
+              }
+            ],
+            "bestScore": 6.69573549962565,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit.",
             "covered": true,
             "sources": [
               {
@@ -136,21 +319,30 @@
                 "url": "http://localhost:3000/settings/policy",
                 "lastChecked": "2026-11-26",
                 "passageId": "policy-weekend"
+              },
+              {
+                "title": "Acme Travel Pvt Ltd expense policy: Travel limits",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "passageId": "policy-limit-travel"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: cab, sunday, travel, weekend"
-            ],
-            "topic": "policy-weekend",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "e13d9ffe-3675-4174-9af3-8dd5b7586451",
+          "verdict": "pass",
+          "flags": [],
+          "routing": "Finance desk: expense policy. Weekend spend. Asked 3 times in the last 7 days. 1 claim line flagged on this rule this week (Weekend).",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "What must a GST tax invoice show about the supplier?",
-          "reply": "The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
+          "reply": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also must include the signature or digital signature of the supplier or an authorised representative.",
           "covered": true,
           "drafter": "model",
           "source": "CGST Invoice Rules: Tax invoice: Supplier details, serial number and date (https://cbic-gst.gov.in/gst-invoice-rules.html, checked 2026-11-26)",
@@ -160,7 +352,54 @@
             "terms: gst, tax, invoice, show, supplier, gstin"
           ],
           "answer": {
-            "reply": "The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: gst, tax, invoice, show, supplier, gstin"
+            ],
+            "topic": "cbic-invoice-supplier",
+            "retrieved": [
+              {
+                "id": "cbic-invoice-supplier",
+                "sourceId": "cbic-invoice-rules",
+                "sourceTitle": "CGST Invoice Rules: Tax invoice",
+                "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
+                "lastChecked": "2026-11-26",
+                "heading": "Supplier details, serial number and date",
+                "text": "A tax invoice issued by a registered person must show the name, address and GSTIN of the supplier, a consecutive serial number unique for the financial year (letters, numerals, hyphen or slash), and the date the invoice was issued."
+              },
+              {
+                "id": "policy-gstin",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Supplier GSTIN",
+                "text": "The supplier's GSTIN is required for any expense above ₹2,000.00. A missing or invalid GSTIN is flagged for the approver."
+              },
+              {
+                "id": "cbic-invoice-place-signature",
+                "sourceId": "cbic-invoice-rules",
+                "sourceTitle": "CGST Invoice Rules: Tax invoice",
+                "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
+                "lastChecked": "2026-11-26",
+                "heading": "Place of supply, reverse charge and signature",
+                "text": "For an inter-State supply the invoice must show the place of supply with the State name, the delivery address if different, whether tax is payable on reverse charge, and the signature or digital signature of the supplier or an authorised representative."
+              },
+              {
+                "id": "cbic-invoice-recipient",
+                "sourceId": "cbic-invoice-rules",
+                "sourceTitle": "CGST Invoice Rules: Tax invoice",
+                "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
+                "lastChecked": "2026-11-26",
+                "heading": "Recipient details",
+                "text": "A tax invoice must show the recipient's name, address and GSTIN or UIN if the recipient is registered. If the recipient is unregistered and the taxable value is ₹50,000 or more, it must show the recipient name and address, the delivery address, and the name and code of the State."
+              }
+            ],
+            "bestScore": 8.08150828761553,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also must include the signature or digital signature of the supplier or an authorised representative.",
             "covered": true,
             "sources": [
               {
@@ -168,17 +407,28 @@
                 "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
                 "lastChecked": "2026-11-26",
                 "passageId": "cbic-invoice-supplier"
+              },
+              {
+                "title": "CGST Invoice Rules: Tax invoice: Place of supply, reverse charge and signature",
+                "url": "https://cbic-gst.gov.in/gst-invoice-rules.html",
+                "lastChecked": "2026-11-26",
+                "passageId": "cbic-invoice-place-signature"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: gst, tax, invoice, show, supplier, gstin"
-            ],
-            "topic": "cbic-invoice-supplier",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "b85d538d-6e7d-4013-b54c-93429700c2f4",
+          "verdict": "flag",
+          "flags": [
+            "warn: Model reviewer: Draft adds extra info about signature"
+          ],
+          "routing": "Finance desk: GST invoice rules. Supplier details, serial number and date. Asked 1 time in the last 7 days.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "Is alcohol reimbursable?",
@@ -192,6 +442,26 @@
             "terms: alcohol, reimbursable"
           ],
           "answer": {
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: alcohol, reimbursable"
+            ],
+            "topic": "policy-notes",
+            "retrieved": [
+              {
+                "id": "policy-notes",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Policy notes",
+                "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
+              }
+            ],
+            "bestScore": 4.62231218933049,
+            "invalidCitations": [],
+            "trimmed": false,
             "reply": "No, alcohol is not reimbursable.",
             "covered": true,
             "sources": [
@@ -202,15 +472,18 @@
                 "passageId": "policy-notes"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: alcohol, reimbursable"
-            ],
-            "topic": "policy-notes",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "0c884d8e-6cd1-438d-8bde-056262eea06a",
+          "verdict": "pass",
+          "flags": [],
+          "routing": "Finance desk: expense policy. Policy notes. Asked 2 times in the last 7 days.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "What is the leave policy?",
@@ -224,18 +497,33 @@
             "terms: leave"
           ],
           "answer": {
-            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
-            "covered": false,
-            "sources": [],
             "searched": [
               "Acme Travel Pvt Ltd expense policy",
               "CGST Invoice Rules: Tax invoice",
               "terms: leave"
             ],
             "topic": "uncovered:leave",
+            "retrieved": [],
+            "bestScore": 0,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
+            "covered": false,
+            "sources": [],
             "canonical": null,
             "drafter": "none"
-          }
+          },
+          "draftId": "a6a81864-ca67-48cd-abfd-3bf98d764df6",
+          "verdict": "pass",
+          "flags": [
+            "info: Not covered by the corpus; the reply says so and names what was searched."
+          ],
+          "routing": "Finance team: not covered by the sources. Not covered by the sources. Asked 1 time in the last 7 days. Answer it outside the desk, or add it to the policy notes so the corpus covers it.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "Can I claim GST input credit on hotel food?",
@@ -249,22 +537,74 @@
             "terms: gst, input, credit, hotel, food, gstin, tax, lodging, meal"
           ],
           "answer": {
-            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
-            "covered": false,
-            "sources": [],
             "searched": [
               "Acme Travel Pvt Ltd expense policy",
               "CGST Invoice Rules: Tax invoice",
               "terms: gst, input, credit, hotel, food, gstin, tax, lodging, meal"
             ],
             "topic": "policy-flags",
+            "retrieved": [
+              {
+                "id": "policy-flags",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "How policy checks work",
+                "text": "Policy checks never block a claim. They add flags (over item limit, over daily limit, missing receipt, missing or invalid GSTIN, GST mismatch, weekend, outside trip dates, possible duplicate) that the approving manager sees before deciding."
+              },
+              {
+                "id": "policy-categories",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Expense categories",
+                "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
+              },
+              {
+                "id": "policy-limit-lodge",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Lodging limits",
+                "text": "Lodging (LODGE): per-item limit ₹6,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-notes",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Policy notes",
+                "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
+              }
+            ],
+            "bestScore": 3.0248830270284373,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
+            "covered": false,
+            "sources": [],
             "canonical": null,
             "drafter": "none"
-          }
+          },
+          "draftId": "5a3a376e-cd4d-4b85-a03e-e90805d178ac",
+          "verdict": "pass",
+          "flags": [
+            "info: Not covered by the corpus; the reply says so and names what was searched."
+          ],
+          "routing": "Finance team: not covered by the sources. How policy checks work. Asked 2 times in the last 7 days. Answer it outside the desk, or add it to the policy notes so the corpus covers it.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "how much for dinner with the team",
-          "reply": "The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00.",
+          "reply": "The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00.",
           "covered": true,
           "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Meals limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
@@ -274,7 +614,36 @@
             "terms: dinner, team, meal"
           ],
           "answer": {
-            "reply": "The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00.",
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: dinner, team, meal"
+            ],
+            "topic": "policy-limit-meals",
+            "retrieved": [
+              {
+                "id": "policy-limit-meals",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Meals limits",
+                "text": "Meals (MEALS): per-item limit ₹1,500.00; daily limit ₹2,500.00. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-categories",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Expense categories",
+                "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
+              }
+            ],
+            "bestScore": 2.3024575213020975,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00.",
             "covered": true,
             "sources": [
               {
@@ -284,15 +653,18 @@
                 "passageId": "policy-limit-meals"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: dinner, team, meal"
-            ],
-            "topic": "policy-limit-meals",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "41076522-f4cf-467b-9811-1e84184cb7fe",
+          "verdict": "pass",
+          "flags": [],
+          "routing": "Finance desk: expense policy. Meals limits. Asked 3 times in the last 7 days. 2 claim lines flagged on this rule this week (Over item limit).",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "gym membership reimbursement",
@@ -306,22 +678,37 @@
             "terms: gym, membership, reimbursement"
           ],
           "answer": {
-            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
-            "covered": false,
-            "sources": [],
             "searched": [
               "Acme Travel Pvt Ltd expense policy",
               "CGST Invoice Rules: Tax invoice",
               "terms: gym, membership, reimbursement"
             ],
             "topic": "uncovered:gym+membership+reimbursement",
+            "retrieved": [],
+            "bestScore": 0,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
+            "covered": false,
+            "sources": [],
             "canonical": null,
             "drafter": "none"
-          }
+          },
+          "draftId": "59b6ceba-d46a-4b1f-8e87-46a673122b86",
+          "verdict": "pass",
+          "flags": [
+            "info: Not covered by the corpus; the reply says so and names what was searched."
+          ],
+          "routing": "Finance team: not covered by the sources. Not covered by the sources. Asked 1 time in the last 7 days. Answer it outside the desk, or add it to the policy notes so the corpus covers it.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "what is the client entertainment limit",
-          "reply": "The per‑item limit for Client Entertainment is ₹10,000.",
+          "reply": "The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit.",
           "covered": true,
           "drafter": "model",
           "source": "Acme Travel Pvt Ltd expense policy: Client Entertainment limits (http://localhost:3000/settings/policy, checked 2026-11-26)",
@@ -331,7 +718,54 @@
             "terms: client, entertainment, limit"
           ],
           "answer": {
-            "reply": "The per‑item limit for Client Entertainment is ₹10,000.",
+            "searched": [
+              "Acme Travel Pvt Ltd expense policy",
+              "CGST Invoice Rules: Tax invoice",
+              "terms: client, entertainment, limit"
+            ],
+            "topic": "policy-limit-ent",
+            "retrieved": [
+              {
+                "id": "policy-limit-ent",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Client Entertainment limits",
+                "text": "Client Entertainment (ENT): per-item limit ₹10,000.00; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              },
+              {
+                "id": "policy-categories",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Expense categories",
+                "text": "The expense categories are: Client Entertainment, Lodging, Meals, Office Supplies, Other, Software, Travel."
+              },
+              {
+                "id": "policy-notes",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Policy notes",
+                "text": "Book economy class for flights under 4 hours. Hotels up to ₹6,000/night in metros. Client entertainment above ₹10,000 needs prior approval from your manager — attach the approval email. Alcohol is not reimbursable. Submit claims within 30 days of the expense."
+              },
+              {
+                "id": "policy-limit-other",
+                "sourceId": "company-policy",
+                "sourceTitle": "Acme Travel Pvt Ltd expense policy",
+                "url": "http://localhost:3000/settings/policy",
+                "lastChecked": "2026-11-26",
+                "heading": "Other limits",
+                "text": "Other (OTHER): no per-item limit; no daily limit. Spending over a limit is flagged for the approver, not blocked."
+              }
+            ],
+            "bestScore": 10.3129706965102,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit.",
             "covered": true,
             "sources": [
               {
@@ -341,15 +775,18 @@
                 "passageId": "policy-limit-ent"
               }
             ],
-            "searched": [
-              "Acme Travel Pvt Ltd expense policy",
-              "CGST Invoice Rules: Tax invoice",
-              "terms: client, entertainment, limit"
-            ],
-            "topic": "policy-limit-ent",
             "canonical": null,
             "drafter": "model"
-          }
+          },
+          "draftId": "91d34963-60d0-4ad3-870e-fcc6300eb36a",
+          "verdict": "pass",
+          "flags": [],
+          "routing": "Finance desk: expense policy. Client Entertainment limits. Asked 1 time in the last 7 days.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         },
         {
           "q": "how do I apply for a home loan",
@@ -363,20 +800,42 @@
             "terms: apply, home, loan"
           ],
           "answer": {
-            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
-            "covered": false,
-            "sources": [],
             "searched": [
               "Acme Travel Pvt Ltd expense policy",
               "CGST Invoice Rules: Tax invoice",
               "terms: apply, home, loan"
             ],
             "topic": "uncovered:apply+home+loan",
+            "retrieved": [],
+            "bestScore": 0,
+            "invalidCitations": [],
+            "trimmed": false,
+            "reply": "I couldn't find this in the sources I have. I searched Acme Travel Pvt Ltd expense policy and CGST Invoice Rules: Tax invoice. Please ask your finance team.",
+            "covered": false,
+            "sources": [],
             "canonical": null,
             "drafter": "none"
-          }
+          },
+          "draftId": "962f57c9-0687-433c-b696-11c377051f55",
+          "verdict": "pass",
+          "flags": [
+            "info: Not covered by the corpus; the reply says so and names what was searched."
+          ],
+          "routing": "Finance team: not covered by the sources. Not covered by the sources. Asked 1 time in the last 7 days. Answer it outside the desk, or add it to the policy notes so the corpus covers it.",
+          "agents": [
+            "corpus",
+            "signals",
+            "compliance"
+          ]
         }
       ],
+      "required": true
+    },
+    {
+      "group": "feasibility",
+      "name": "Each question runs through 3 parallel agents, the orchestrator (routing note) and the reviewer, then waits for a person",
+      "pass": true,
+      "detail": "12/12 with all three agents, a routing note and a verdict (11 pass, 1 flagged, 0 rejected); 12 pending, 0 sent without approval",
       "required": true
     },
     {
@@ -390,7 +849,7 @@
       "group": "feasibility",
       "name": "Weekly loop completes without manual intervention once triggered",
       "pass": true,
-      "detail": "run a451266b (2026-11-20 to 2026-11-26), trigger=schedule",
+      "detail": "run 143b7ea1 (2026-11-20 to 2026-11-26), trigger=schedule",
       "required": true
     },
     {
@@ -446,7 +905,7 @@
       "group": "feasibility",
       "name": "Pulse is 250 words or fewer",
       "pass": true,
-      "detail": "150 words",
+      "detail": "170 words",
       "required": true
     },
     {
@@ -458,30 +917,58 @@
     },
     {
       "group": "edits",
-      "name": "A human edit changes only that draft",
+      "name": "A human edit changes only that draft (weekly actions)",
       "pass": true,
       "detail": "changed actions: 1 (the edited email); outputs 0→0",
       "required": true
     },
     {
       "group": "edits",
-      "name": "Approving one action does not trigger another",
+      "name": "Approving one action does not trigger another (weekly actions)",
       "pass": true,
       "detail": "changed actions: 1; outputs +1; canonical +0",
       "required": true
     },
     {
       "group": "edits",
-      "name": "An approved action cannot be approved again",
+      "name": "An approved action cannot be approved again (weekly actions)",
       "pass": true,
       "detail": "second approval rejected",
       "required": true
     },
     {
       "group": "edits",
-      "name": "Rejecting a draft leaves the rest of the queue untouched",
+      "name": "Rejecting a draft leaves the rest of the queue untouched (weekly actions)",
       "pass": true,
       "detail": "changed actions: 1 (the rejected one); claims changed: 0; expenses 35→35",
+      "required": true
+    },
+    {
+      "group": "edits",
+      "name": "A human edit changes only that draft (response desk)",
+      "pass": true,
+      "detail": "drafts changed: 1 (the edited one); other state unchanged; an edit with an invented figure was refused and changed nothing",
+      "required": true
+    },
+    {
+      "group": "edits",
+      "name": "Approving one draft does not trigger another (response desk)",
+      "pass": true,
+      "detail": "drafts changed: 1; weekly actions, outputs, canonical answers and expenses unchanged",
+      "required": true
+    },
+    {
+      "group": "edits",
+      "name": "An approved draft cannot be approved again (response desk)",
+      "pass": true,
+      "detail": "second approval rejected",
+      "required": true
+    },
+    {
+      "group": "edits",
+      "name": "Rejecting a draft leaves the rest of the queue untouched (response desk)",
+      "pass": true,
+      "detail": "drafts changed: 1 of 20 (the rejected one)",
       "required": true
     },
     {
@@ -507,34 +994,34 @@
         {
           "loop": "response",
           "claim": "The hotel limit is ₹6,000 per night.",
-          "tracesTo": "policy-limit-lodge → http://localhost:3000/settings/policy",
+          "tracesTo": "policy-notes → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Yes, a GSTIN is required because the expense exceeds ₹2,000.",
+          "claim": "Yes. A supplier GSTIN is required for any expense above ₹2,000.00.",
           "tracesTo": "policy-gstin → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "A receipt image is required for any expense above ₹500.00. A claim missing a required receipt is flagged when it is submitted.",
+          "claim": "A receipt image is required for any expense above ₹500.00.",
           "tracesTo": "policy-receipts → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "Yes, you can claim a cab on Sunday; expenses on Saturday or Sunday are allowed but will be flagged for the approver.",
+          "claim": "Yes, you can claim a cab on Sunday; weekend expenses are allowed but flagged for the approver, and travel has no per‑item limit.",
           "tracesTo": "policy-weekend → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "The invoice must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year, and the invoice date.",
+          "claim": "It must show the supplier’s name, address and GSTIN, a consecutive serial number unique for the financial year and the invoice date. It also must include the signature or digital signature of the supplier or an authorised representative.",
           "tracesTo": "cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html",
           "ok": true,
           "why": "source passage contains every amount"
@@ -548,14 +1035,14 @@
         },
         {
           "loop": "response",
-          "claim": "The per‑item limit for meals is ₹1,500.00 and the daily total cannot exceed ₹2,500.00.",
+          "claim": "The per‑item limit for meals is ₹1,500.00, and the daily total limit is ₹2,500.00.",
           "tracesTo": "policy-limit-meals → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
         },
         {
           "loop": "response",
-          "claim": "The per‑item limit for Client Entertainment is ₹10,000.",
+          "claim": "The per‑item limit for client entertainment is ₹10,000.00, and there is no daily limit.",
           "tracesTo": "policy-limit-ent → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
@@ -590,7 +1077,7 @@
         },
         {
           "loop": "weekly",
-          "claim": "The supplier's GSTIN is required for any expense above ₹2,000.00 and a missing or invalid GSTIN is flagged for the approver.",
+          "claim": "The supplier's GSTIN is required for any expense above ₹2,000.00, and a missing or invalid GSTIN is flagged for the approver.",
           "tracesTo": "policy-gstin → http://localhost:3000/settings/policy",
           "ok": true,
           "why": "source passage contains every amount"
@@ -604,10 +1091,67 @@
         },
         {
           "loop": "weekly",
-          "claim": "A tax invoice issued by a registered person must display the supplier's name, address and GSTIN, a unique consecutive serial number for the financial year, and the invoice date.",
+          "claim": "A tax invoice issued by a registered person must display the supplier’s name, address and GSTIN, a unique consecutive serial number for the financial year, and the invoice issue date.",
           "tracesTo": "cbic-invoice-supplier → https://cbic-gst.gov.in/gst-invoice-rules.html",
           "ok": true,
           "why": "source passage contains every amount"
+        }
+      ],
+      "required": true
+    },
+    {
+      "group": "grounding",
+      "name": "The reviewer rejects drafts with an invented figure, a wrong citation, advice, >3 sentences or no source, and approval is blocked",
+      "pass": true,
+      "detail": "6/6 (5 bad drafts stopped, 1 grounded control approved)",
+      "data": [
+        {
+          "case": "invented figure",
+          "verdict": "reject",
+          "blocked": [
+            "8000 is not in the cited passage or the question."
+          ],
+          "ok": true
+        },
+        {
+          "case": "cites a passage not retrieved",
+          "verdict": "reject",
+          "blocked": [
+            "Cites cbic-invoice-place-signature, which was not retrieved for this question.",
+            "6000 is not in the cited passage or the question."
+          ],
+          "ok": true
+        },
+        {
+          "case": "advice",
+          "verdict": "reject",
+          "blocked": [
+            "Contains advice, a recommendation or a return figure. Facts only."
+          ],
+          "ok": true
+        },
+        {
+          "case": "over 3 sentences",
+          "verdict": "reject",
+          "blocked": [
+            "More than 3 sentences."
+          ],
+          "ok": true
+        },
+        {
+          "case": "no citation",
+          "verdict": "reject",
+          "blocked": [
+            "The draft cites no source passage.",
+            "500 is not in the cited passage or the question."
+          ],
+          "ok": true
+        },
+        {
+          "case": "grounded (control)",
+          "verdict": "pass",
+          "blocked": [],
+          "ok": true
         }
       ],
       "required": true
@@ -673,7 +1217,7 @@
       "group": "compliance",
       "name": "PAN, account and phone numbers are redacted everywhere (storage + agent state)",
       "pass": true,
-      "detail": "6 messages × 2 repeats × 2 channels + a pulse edit; raw values found: 0; redaction markers stored: 32",
+      "detail": "6 messages × 2 repeats × 2 channels + a pulse edit; raw values found: 0; redaction markers stored: 44",
       "data": [],
       "required": true
     },
@@ -845,15 +1389,15 @@
       "group": "ai",
       "name": "Model-drafted answers cite the expected passage",
       "pass": true,
-      "detail": "28/28 (100%)",
+      "detail": "27/28 (96%)",
       "data": [
         {
           "q": "What is the hotel limit per night?",
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-notes",
-            "policy-limit-lodge"
+            "policy-limit-lodge",
+            "policy-notes"
           ],
           "ok": true
         },
@@ -1001,8 +1545,7 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-weekend",
-            "policy-limit-travel"
+            "policy-weekend"
           ],
           "ok": true
         },
@@ -1048,8 +1591,7 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-limit-ent",
-            "policy-notes"
+            "policy-limit-ent"
           ],
           "ok": true
         },
@@ -1085,9 +1627,9 @@
           "covered": true,
           "drafter": "model",
           "cited": [
-            "policy-limit-other"
+            "policy-limit-travel"
           ],
-          "ok": true
+          "ok": false
         },
         {
           "q": "is alcohol reimbursable",

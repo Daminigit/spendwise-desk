@@ -33,7 +33,8 @@ import { FLAG_LABELS } from '../web/util.js';
 import { ADVICE_REFUSAL, isAdviceRequest, violatesScope } from './guard.js';
 import { signAction, type AssistantAction } from './actions.js';
 import { recordEvent, type Channel, type Outcome } from './events.js';
-import { answerPolicyQuestion, type PolicyAnswer } from './policy.js';
+import type { PolicyAnswer } from './policy.js';
+import { submitQuestion } from '../desk/desk.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shapes
@@ -85,7 +86,7 @@ export interface AssistantReply {
   pending: Pending | null;
   options: string[];
   preview: Preview | null;
-  policy: PolicyAnswer | null;
+  policy: (PolicyAnswer & { queued: { id: string } | null }) | null;
   /** PII kinds removed from the message before it was processed. */
   redacted: PiiKind[];
 }
@@ -171,6 +172,7 @@ export async function interpret(input: InterpretInput): Promise<AssistantReply> 
             topic: r.policy.topic,
             canonicalId: r.policy.canonical?.id ?? null,
             sources: r.policy.sources.map((s) => s.url),
+            draftId: r.policy.queued?.id ?? null,
           }
         : undefined,
     });
@@ -233,12 +235,28 @@ export async function interpret(input: InterpretInput): Promise<AssistantReply> 
       reply = await handleDecision(user, ctx, intent, extraction, input.pending ?? null);
       break;
     case 'policy_question': {
-      const answer = await answerPolicyQuestion(user, extraction.question || text);
-      const safe = violatesScope(answer.reply) ? ADVICE_REFUSAL : answer.reply;
-      reply = {
-        ...blank('policy_question', answer.covered ? 'answered' : 'not_covered', safe),
-        policy: { ...answer, reply: safe },
-      };
+      // Through the response desk: three agents, orchestrator, reviewer, then a person.
+      const out = await submitQuestion(user, { question: extraction.question || text, raw: text, channel, via: 'web' });
+      if (out.kind === 'refused') {
+        reply = blank('policy_question', 'refused', out.reply);
+      } else if (out.kind === 'canonical') {
+        const safe = violatesScope(out.reply) ? ADVICE_REFUSAL : out.reply;
+        reply = {
+          ...blank('policy_question', 'answered', safe),
+          policy: { ...out.answer, reply: safe, queued: null },
+        };
+      } else {
+        reply = {
+          ...blank('policy_question', out.answer.covered ? 'queued' : 'not_covered', out.reply),
+          policy: {
+            ...strip(out.answer),
+            reply: out.reply,
+            // Nothing factual reaches the asker before approval: no sources yet.
+            sources: [],
+            queued: { id: out.draftId },
+          },
+        };
+      }
       break;
     }
     default:
@@ -618,4 +636,9 @@ function prettyDate(iso: string): string {
 function newClaimTitle(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);
   return `Expenses ${d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
+}
+
+function strip(a: PolicyAnswer): PolicyAnswer {
+  const { reply, covered, sources, searched, topic, canonical, drafter } = a;
+  return { reply, covered, sources, searched, topic, canonical, drafter };
 }
