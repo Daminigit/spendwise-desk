@@ -414,6 +414,45 @@ export async function addExpenses(
   return { expenseResults, totals: computeTotals(allExp) };
 }
 
+/**
+ * Run the policy checks for one expense WITHOUT saving anything, so the voice
+ * assistant can show the flags in its preview before the user confirms.
+ * `claimId` null means "a new draft claim" (no trip dates).
+ */
+export async function previewExpenseFlags(
+  userId: string,
+  orgId: string,
+  claimId: string | null,
+  raw: ExpenseInputRaw,
+): Promise<{ flags: FlagCode[]; category: Category }> {
+  let claim: Claim | undefined;
+  if (claimId) {
+    [claim] = await db.select().from(claims).where(eq(claims.id, claimId));
+    if (!claim || claim.userId !== userId) throw new DomainError('Claim not found.', 'not_found');
+    if (claim.status !== 'draft') throw new DomainError('Expenses can only be added to draft claims.');
+  }
+  const [pol] = await db.select().from(policy).where(eq(policy.orgId, orgId));
+  if (!pol) throw new DomainError('Organisation policy not found.');
+  const allCats = await db.select().from(categories).where(eq(categories.orgId, orgId));
+  const cat = await resolveCategory(orgId, raw.category, allCats);
+
+  const existing = await db
+    .select({ id: expenses.id, claimId: expenses.claimId, date: expenses.date, merchant: expenses.merchant, categoryId: expenses.categoryId, amountMinor: expenses.amountMinor })
+    .from(expenses)
+    .innerJoin(claims, eq(expenses.claimId, claims.id))
+    .where(eq(claims.userId, userId));
+
+  const flags = checkExpense(
+    { claimId: claimId ?? undefined, date: raw.date, merchant: raw.merchant, categoryId: cat.id, amountMinor: toPaise(raw.amount), gstin: raw.gstin, taxableMinor: 0, cgstMinor: 0, sgstMinor: 0, igstMinor: 0 },
+    { userId, tripStart: claim?.tripStart, tripEnd: claim?.tripEnd },
+    pol,
+    cat,
+    existing.filter((e) => e.date === raw.date && e.categoryId === cat.id),
+    existing,
+  );
+  return { flags, category: cat };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // updateExpense
 // ─────────────────────────────────────────────────────────────────────────────

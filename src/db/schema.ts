@@ -242,6 +242,30 @@ export const receiptFiles = pgTable('receipt_files', {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// assistant_events  (one row per voice/text assistant turn; text is stored
+// REDACTED only — never the raw utterance. Feeds the weekly pulse.)
+// ─────────────────────────────────────────────────────────────────────────────
+export const assistantEvents = pgTable(
+  'assistant_events',
+  {
+    id: text('id').primaryKey(),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    channel: text('channel', { enum: ['voice', 'text'] }).notNull(),
+    intent: text('intent').notNull(),
+    // needs_info | previewed | confirmed | cancelled | answered | not_covered | refused | error
+    outcome: text('outcome').notNull(),
+    textRedacted: text('text_redacted').notNull(),
+    piiFound: json('pii_found').$type<string[]>().notNull().default([]),
+    meta: json('meta').$type<Record<string, unknown> | null>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('assistant_events_org_created_idx').on(t.orgId, t.createdAt)],
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Relations (for Drizzle query API)
 // ─────────────────────────────────────────────────────────────────────────────
 export const organisationsRelations = relations(organisations, ({ many, one }) => ({
@@ -330,3 +354,6 @@ export type NewAuditLog = typeof auditLog.$inferInsert;
 export type AuditVia = 'web' | 'mcp';
 
 export type ReceiptFile = typeof receiptFiles.$inferSelect;
+
+export type AssistantEvent = typeof assistantEvents.$inferSelect;
+export type NewAssistantEvent = typeof assistantEvents.$inferInsert;

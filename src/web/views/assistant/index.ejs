@@ -1,0 +1,35 @@
+<div class="page-head">
+  <h1>Assistant</h1>
+  <label class="inline small muted"><input type="checkbox" id="speak-toggle" checked> Read replies aloud</label>
+</div>
+
+<% if (!aiReady) { %>
+  <div class="flash flash-error" role="alert">The assistant is not configured on this server (ANTHROPIC_API_KEY is missing).</div>
+<% } %>
+
+<section class="assistant" data-assistant>
+  <div class="assistant-log card" aria-live="polite" data-log>
+    <div class="bubble bubble-bot">
+      Hi <%= user.name.split(' ')[0] %>. Tap the mic and say something like
+      <em>"Add 450 rupees Uber to the airport yesterday"</em>,
+      <em>"What's the hotel limit?"</em> or <em>"Where is my Bangalore claim?"</em>
+      <% if (user.role !== 'employee') { %> You can also say <em>"Approve Riya's claim"</em>.<% } %>
+    </div>
+  </div>
+
+  <div class="assistant-preview" data-preview hidden></div>
+  <div class="assistant-options" data-options></div>
+
+  <form class="assistant-input" data-form>
+    <button type="button" class="mic" data-mic aria-label="Start speaking" title="Speak">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+    </button>
+    <label class="sr-only" for="assistant-text">Message</label>
+    <input id="assistant-text" type="text" name="text" maxlength="1000" autocomplete="off"
+           placeholder="Speak, or type here…" data-text>
+    <button class="btn btn-primary" type="submit" data-send>Send</button>
+  </form>
+  <p class="muted small" data-mic-status>Nothing is saved until you press the confirm button on a preview. Personal numbers (PAN, phone, account) are removed before anything is processed.</p>
+</section>
+
+<script src="/public/assistant.js" defer></script>

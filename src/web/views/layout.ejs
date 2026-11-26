@@ -13,6 +13,7 @@
       <a class="brand" href="<%= user ? '/claims' : '/' %>"><span class="brand-mark">₹</span> Spendwise</a>
       <% if (user) { %>
         <% const nav = [
+             { href: '/assistant', label: 'Assistant', show: true },
              { href: '/claims', label: 'My claims', show: true },
              { href: '/approvals', label: 'Approvals', show: user.role !== 'employee' },
              { href: '/reports', label: 'Reports', show: user.role !== 'employee' },
