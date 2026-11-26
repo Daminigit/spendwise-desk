@@ -4,7 +4,7 @@ Expense claims for small Indian teams — with voice, cited policy answers and a
 
 An employee drops receipt photos into **their own Claude** and says *"Log these from my Bangalore trip."* Claude reads the receipts and sends the lines to Spendwise over MCP. Spendwise checks them against the company policy with plain code (limits, GSTIN, weekends, duplicates, trip dates), saves a draft claim, routes it to the manager, keeps an audit trail, and gives finance reports and a CSV export for Tally / Zoho Books / Xero.
 
-**Spendwise never calls an AI API.** The customer's Claude does the reading; CI fails if an AI SDK or API-key env var ever appears in the repo.
+**Where the AI sits.** The customer's Claude still does the reading over MCP. Spendwise Desk also calls Claude itself (with `ANTHROPIC_API_KEY`) for three jobs only: understanding voice requests, drafting cited policy answers, and grouping the weekly pulse. Policy checks stay plain code, and PAN, Aadhaar, phone, card and account numbers are redacted in code before any text reaches the model or the logs (`src/ai/redact.ts`).
 
 ---
 
@@ -63,7 +63,6 @@ Put Neon's pooled connection string in `DATABASE_URL` and the direct one (host w
 | `npm run seed` | Create the demo org (`-- --reset` to recreate) |
 | `npm test` | Unit tests; integration tests too when `TEST_DATABASE_URL` is set |
 | `npm run typecheck` / `npm run lint` | Types (src + tests) / ESLint |
-| `npm run check:no-ai` | Fail on banned AI packages or env vars |
 
 ### Environment
 
@@ -139,7 +138,7 @@ TEST_DATABASE_URL=postgresql://localhost/spendwise_test npm test  # + integratio
 
 Integration tests only ever use `TEST_DATABASE_URL` (never `DATABASE_URL`). Each test file creates its own organisation, so they run in parallel without clearing data. They cover the claim lifecycle, every MCP tool over real HTTP with the official SDK client, permissions over both MCP and the web (including cross-team, cross-org and revoked tokens), web flows, CSV export and the demo seed.
 
-CI (`.github/workflows/ci.yml`) runs the no-AI guard, type-check, lint, build, all tests against Postgres 16, a smoke test of the production build (`npm start` with migrate + seed, then the landing page and `tools/list` over MCP), and a Docker build.
+CI (`.github/workflows/ci.yml`) runs type-check, lint, build, all tests against Postgres 16, a smoke test of the production build (`npm start` with migrate + seed, then the landing page and `tools/list` over MCP), and a Docker build.
 
 ---
 

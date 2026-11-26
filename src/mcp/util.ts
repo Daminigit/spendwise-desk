@@ -14,6 +14,7 @@ import type { ClaimDetail, ClaimSummary, ClaimTotals } from '../domain/claims.js
 import { FLAG_LABELS } from '../web/util.js';
 import { appUrl } from '../config.js';
 import { describeHistory } from '../web/history.js';
+import { logError } from '../log.js';
 
 /** Who is calling: the user that owns the connector token. */
 export interface McpContext {
@@ -177,7 +178,7 @@ export async function run(tool: string, fn: () => Promise<unknown>): Promise<Cal
     return ok(await fn());
   } catch (err) {
     if (err instanceof DomainError) return toolError(err.message);
-    console.error(`[mcp:${tool}]`, err);
+    logError(`[mcp:${tool}]`, err);
     return toolError(`Spendwise hit an unexpected error running ${tool}. Please try again in a moment.`);
   }
 }

@@ -11,7 +11,9 @@ This file is the source of truth for what we are building and why. Read it befor
 
 Employees at small companies (5–200 people) lose hours turning receipts into expense claims, and managers lose hours chasing and checking them. With Spendwise, an employee drops receipt photos into **their own Claude** and says *"Log these from my Bangalore trip."* Claude reads each receipt (merchant, date, amount, GST, category), checks it against the company's spending policy, and sends the claim to Spendwise through MCP. Spendwise stores it, puts it in the manager's approval queue, lets people fix mistakes, keeps an audit trail, and gives finance monthly reports and a CSV export for accounting.
 
-**Spendwise has no AI inside it.** It holds no OpenAI, Anthropic or other model keys and makes no AI calls. Every bit of "reading" and "writing" happens in the customer's Claude. Spendwise is a normal web app plus an MCP server.
+> **Spendwise Desk update:** the no-AI rule below applied to Spendwise v1. Spendwise Desk now calls Claude for voice intent, cited answers and the weekly pulse; see the README.
+
+**Spendwise v1 had no AI inside it.** It holds no OpenAI, Anthropic or other model keys and makes no AI calls. Every bit of "reading" and "writing" happens in the customer's Claude. Spendwise is a normal web app plus an MCP server.
 
 ---
 

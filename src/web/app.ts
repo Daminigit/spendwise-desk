@@ -22,6 +22,7 @@ import { settingsRouter } from './routes/settings.js';
 import { uploadRouter } from './routes/upload.js';
 import { receiptsRouter } from './routes/receipts.js';
 import { assertStorageConfig } from '../storage/index.js';
+import { logError } from '../log.js';
 
 // Resolved from the working directory so it works for both `tsx src/…` and
 // `node dist/…` (the Dockerfile copies src/web/{views,public} next to dist/).
@@ -131,7 +132,7 @@ export function createApp() {
       status = 413;
       message = 'Request is too large.';
     } else {
-      console.error(`[${req.method} ${req.originalUrl}]`, err);
+      logError(`[${req.method} ${req.path}]`, err);
     }
 
     if (res.headersSent) return;

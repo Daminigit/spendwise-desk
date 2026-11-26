@@ -24,6 +24,9 @@ services:
       # Neon direct connection string (same, without "-pooler"), used for migrations.
       - key: DATABASE_URL_UNPOOLED
         sync: false
+      # Claude API key for voice intent, policy answers and the weekly pulse. Never committed.
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       # Receipts are stored in Postgres, so uploads survive restarts and deploys

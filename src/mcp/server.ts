@@ -13,6 +13,7 @@ import { Router, type Request, type Response } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { authenticateToken } from '../domain/tokens.js';
+import { logError } from '../log.js';
 import type { McpContext } from './util.js';
 import { registerGetPolicy } from './tools/get_policy.js';
 import { registerCreateClaim } from './tools/create_claim.js';
@@ -87,7 +88,7 @@ export function createMcpRouter(): Router {
 
   router.post('/:token', (req, res) => {
     handlePost(req, res).catch((err) => {
-      console.error('[mcp] request failed', err);
+      logError('[mcp] request failed', err);
       if (!res.headersSent) rpcError(res, 500, -32603, 'Internal server error.');
     });
   });

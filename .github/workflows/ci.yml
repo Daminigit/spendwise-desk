@@ -14,19 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  no-ai-check:
-    name: No-AI guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      # Zero dependencies: fails if package.json, the lockfile or any source/config
-      # file references a banned AI package or an (OPENAI|ANTHROPIC|GEMINI|MISTRAL|COHERE)_ env var.
-      - name: Check for banned AI packages and env vars
-        run: node scripts/check-no-ai.js
-
   build-test:
     name: Build & test
     runs-on: ubuntu-latest
