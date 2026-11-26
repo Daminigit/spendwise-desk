@@ -685,6 +685,61 @@ async function main() {
   mkdirSync(path.join(here, 'results'), { recursive: true });
   mkdirSync(path.join(here, 'samples'), { recursive: true });
 
+  // The weekly loop's input, as the first run saw it (the "reviews CSV" of the brief):
+  // assistant questions (redacted) and claim lines flagged or rejected in the window.
+  const csvCell = (v: unknown) => {
+    const t = String(v ?? '');
+    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const inputEvents = await db
+    .select()
+    .from(schema.assistantEvents)
+    .where(
+      sql`${schema.assistantEvents.orgId} = ${orgId} and ${schema.assistantEvents.createdAt} <= ${run.createdAt.toISOString()}::timestamptz`,
+    )
+    .orderBy(schema.assistantEvents.createdAt);
+  const inputLines = await db
+    .select({
+      id: schema.expenses.id,
+      date: schema.expenses.date,
+      flags: schema.expenses.flags,
+      status: schema.expenses.status,
+      note: schema.expenses.reviewerNote,
+      cat: schema.categories.code,
+      created: schema.expenses.createdAt,
+    })
+    .from(schema.expenses)
+    .innerJoin(schema.claims, eq(schema.expenses.claimId, schema.claims.id))
+    .innerJoin(schema.categories, eq(schema.expenses.categoryId, schema.categories.id))
+    .where(
+      sql`${schema.claims.orgId} = ${orgId} and ${schema.expenses.createdAt} >= ${run.windowStart}::date - interval '1 day' and ${schema.expenses.createdAt} <= ${run.createdAt.toISOString()}::timestamptz`,
+    );
+  const csv = [
+    'id,source,created_at,channel_or_category,intent_or_flags,outcome_or_status,text,topic',
+    ...inputEvents.map((e) =>
+      [
+        e.id,
+        'assistant_question',
+        e.createdAt.toISOString(),
+        e.channel,
+        e.intent,
+        e.outcome,
+        e.textRedacted,
+        (e.meta as { topic?: string } | null)?.topic ?? '',
+      ]
+        .map(csvCell)
+        .join(','),
+    ),
+    ...inputLines
+      .filter((l) => l.flags.length || l.status === 'rejected')
+      .map((l) =>
+        [l.id, 'claim_line', l.created.toISOString(), l.cat, l.flags.join(' '), l.status, l.note ?? '', '']
+          .map(csvCell)
+          .join(','),
+      ),
+  ].join('\n');
+  writeFileSync(path.join(here, 'samples', 'weekly-inputs.csv'), `${csv}\n`);
+
   const five = [queue[0], queue[1], queue[3], queue[4], queue[6]];
   writeFileSync(
     path.join(here, 'samples', 'questions-and-drafts.md'),

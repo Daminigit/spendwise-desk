@@ -1,169 +1,286 @@
 # Spendwise Desk
 
-Expense claims for small Indian teams — with voice, cited policy answers and a weekly finance pulse. Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1.
+A support and policy desk for expense claims at small Indian companies. Employees ask questions and log expenses by voice. Every answer is cited, checked against the expense policy in code, and approved by a person before anything is saved. Each week the system groups what people are confused about into a short pulse for the finance team. Once a canonical explainer is approved, the assistant reuses it.
 
-An employee drops receipt photos into **their own Claude** and says *"Log these from my Bangalore trip."* Claude reads the receipts and sends the lines to Spendwise over MCP. Spendwise checks them against the company policy with plain code (limits, GSTIN, weekends, duplicates, trip dates), saves a draft claim, routes it to the manager, keeps an audit trail, and gives finance reports and a CSV export for Tally / Zoho Books / Xero.
+Built on [Spendwise](https://github.com/Daminigit/Spendwise) v1 (expense claims run from Claude over MCP).
 
-**Where the AI sits.** The customer's Claude still does the reading over MCP. Spendwise Desk also calls Claude itself (with `ANTHROPIC_API_KEY`) for three jobs only: understanding voice requests, drafting cited policy answers, and grouping the weekly pulse. Policy checks stay plain code, and PAN, Aadhaar, phone, card and account numbers are redacted in code before any text reaches the model or the logs (`src/ai/redact.ts`).
+- **Prototype:** _add the Render URL here after deploying (see [Deploy](#deploy))_
+- **Evals:** [`evals/RESULTS.md`](evals/RESULTS.md): 19/19 required checks pass
+- **Demo logins** (password `demo1234`): `riya@acme.test` (employee), `manager@acme.test` (manager), `admin@acme.test` (admin / finance)
 
 ---
 
-## Try the demo
+## The brief, mapped to this product
 
-After `npm run seed` (or on a deployment with `SEED_DEMO=true`) the org **Acme Travel Pvt Ltd** exists with ~3 months of claims in every status.
+The brief was written for an investment platform. Our instructor allowed any product that meets the rubric, so this is how each part of the brief maps onto expense claims:
 
-| Login | Role | Password |
+| In the brief | In Spendwise Desk |
+|---|---|
+| Official documents / FAQ corpus | The company's expense policy (read live from the database) plus CBIC's GST tax-invoice rules ([Sources](#sources)) |
+| Reviews CSV | One week of questions people asked the assistant, plus claim lines that were flagged or rejected ([`evals/samples/weekly-inputs.csv`](evals/samples/weekly-inputs.csv)) |
+| Fee or charge confusion | Policy-rule confusion: which bills need a supplier GSTIN, hotel and meal limits, weekend spend |
+| User questions queue | Spoken or typed messages to the Assistant, plus `ask_policy` calls from the employee's own Claude |
+| Reply draft with citation | A cited answer of three sentences or fewer, or a preview card for an action (add expense, approve, reject) |
+| Product team | Finance / admins |
+| Doc append, email draft | Weekly Log entry, and a saved email draft that is never sent |
+| No buy/sell, returns or PII | No investment, tax-planning or returns advice; PAN, Aadhaar, card, phone, account, email and UPI are redacted everywhere |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph In["Response loop"]
+    V["Voice / text<br/>/assistant"] --> G1{"Advice guard<br/>(code)"}
+    M["Employee's Claude<br/>MCP ask_policy"] --> G1
+    G1 -- refused --> R["Refusal"]
+    G1 --> X["Claude: intent + fields<br/>(JSON only)"]
+    X --> C1["Code: validate, ask for missing,<br/>policy checks, preview"]
+    X --> P["Policy question"]
+    P --> S["Keyword search<br/>over corpus (code)"]
+    S --> K{"Canonical<br/>answer?"}
+    K -- yes --> A1["Reuse approved explainer"]
+    K -- no --> A2["Claude answers from passages<br/>code checks citations, ≤3 sentences, scope"]
+    C1 --> PV["Preview + signed token"]
+    PV --> OK["Person confirms → write"]
+  end
+  subgraph W["Weekly loop"]
+    E[("assistant_events<br/>redacted")] --> T["Group by source passage<br/>+ flags + rejections (code)"]
+    F[("claim lines<br/>flags, rejections")] --> T
+    T --> PU["Pulse ≤250 words<br/>Claude: summary + 3 ideas"]
+    T --> EX["Explainer ≤6 cited bullets"]
+    PU --> Q["Pending actions"]
+    EX --> Q
+    Q --> AP["Admin approves / edits / rejects each"]
+    AP --> LOG["Weekly Log, email draft"]
+    AP --> CAN[("canonical_answers")]
+  end
+  A2 -. topic .-> E
+  CAN -. reused by .-> K
+```
+
+| Layer | Where |
+|---|---|
+| Claude client (redaction in and out, refusals as data, server-side fallback) | [`src/ai/claude.ts`](src/ai/claude.ts) |
+| PII redaction (prompts, replies, storage, logs) | [`src/ai/redact.ts`](src/ai/redact.ts), [`src/log.ts`](src/log.ts) |
+| Response loop | [`src/assistant/interpret.ts`](src/assistant/interpret.ts), [`policy.ts`](src/assistant/policy.ts), [`guard.ts`](src/assistant/guard.ts), [`actions.ts`](src/assistant/actions.ts) |
+| Corpus and retrieval | [`src/corpus/`](src/corpus) |
+| Weekly loop, approval gate, canonical answers, scheduler | [`src/pulse/`](src/pulse) |
+| Expense domain (claims, policy checks, audit log) | [`src/domain/`](src/domain) |
+| MCP server (11 tools) | [`src/mcp/`](src/mcp) |
+| Web app (Express + EJS, no build step) | [`src/web/`](src/web) |
+| Evals | [`evals/`](evals) |
+
+Stack: Node 22, TypeScript, Express, Postgres (Neon) with Drizzle, the Anthropic SDK (`claude-opus-5-5`), and the MCP TypeScript SDK. Voice uses the browser's own speech recognition (`en-IN`) and speech synthesis.
+
+### Where the line is drawn between the model and code
+
+The model is used only where language understanding is needed. Everything that must be right every time is plain code.
+
+| Claude does | Code does |
+|---|---|
+| Works out the intent and fields of a message (*"paanch sau ka lunch kal"* → log_expense, ₹500, MEALS, yesterday) | Validates every field (amount range, real date, not in the future, category exists, claim is the user's draft) and asks for what is missing, one question at a time |
+| Answers a policy question from the retrieved passages | Retrieves the passages; rejects an answer that cites a passage it was not given; caps it at 3 sentences; blocks advice and return figures |
+| Writes the pulse summary, 3 action ideas and the explainer bullets | Groups themes, counts, ids, quotes and the window; enforces 250 words and 6 bullets; keeps only bullets that cite a real passage |
+| — | Policy checks (limits, GSTIN, weekend, duplicates), the advice guard, PII redaction, permissions, every database write |
+
+When the model is unavailable, the system says so instead of guessing. Policy answers fall back to quoting the best passage word for word, but only when the match is strong. The weekly loop falls back to templates and the source passages themselves.
+
+---
+
+## The two loops
+
+### 1. Response loop: `/assistant` and the MCP `ask_policy` tool
+
+1. The employee taps the mic (or types). The browser turns speech into text.
+2. The **advice guard** (code) refuses investment, tax-planning and returns requests before the model runs.
+3. Claude returns only `{intent, amount, date, merchant, category, claim, note, question}` as structured JSON.
+4. What happens next depends on the intent:
+   - **log_expense:** code checks each field and asks follow-up questions. It then runs the policy checks and shows a **preview card** with flags (e.g. *Over item limit*).
+   - **policy_question:** search the corpus, then reuse a **canonical answer** if one exists; otherwise Claude drafts from the passages and code checks the draft. The reply shows the **source link and last-checked date**. If nothing matches: *"I couldn't find this… I searched X and Y."*
+   - **claim_status:** answered from the database.
+   - **approve_claim / reject_claim** (managers): a preview, and a reason is required to reject.
+5. Nothing is saved until the person presses the confirm button.
+
+Every turn is stored in `assistant_events` with **redacted text only**, plus its topic (the passage it matched). These rows feed the weekly loop.
+
+### 2. Weekly loop: `/pulse` (admins)
+
+It is triggered by the **Run weekly loop now** button, by `PULSE_SCHEDULE=weekly` (Mondays 09:00 IST, in-process), or by `npm run pulse` / `node dist/pulse/cli.js` from cron.
+
+1. **Gather:** 7 days (India time) of assistant questions, plus claim lines that were flagged or rejected.
+2. **Group:** each question goes under the passage it retrieved; each flag goes under the policy passage it relates to (`MISSING_GSTIN` → *Supplier GSTIN*, `OVER_ITEM_LIMIT` on MEALS → *Meals limits*). At most 5 themes, the top 3 in the pulse. Every theme lists its event and expense ids and the window it covers.
+3. **Pulse** (≤250 words): themes with counts, the questions asked 5+ times, quotes, a summary, and 3 action ideas.
+4. **Explainer** for the top confusion: ≤6 bullets, each citing a passage, sourced from the company policy and CBIC, with a last-checked date.
+5. **Three pending actions** go to the approval screen. Nothing has been written yet.
+
+### How the loops connect
+
+- **Response → weekly.** Each question is stored with the passage it matched. If the same topic is asked 5+ times in the window, it is marked *repeated* and always shown in the pulse (*"Asked 5+ times this week: Supplier GSTIN (7)"*), even if it would otherwise fall outside the top themes.
+- **Weekly → response.** Approving the explainer writes it to `canonical_answers`. The next policy question on that topic is answered **from the approved text, without calling Claude**. The reply carries an *Approved answer* badge, and each reuse is counted. The next run sees the topic is already canonical and does not ask again. Admins can retire a canonical answer under *Pulse → Canonical answers*.
+
+Both directions are tested ([`tests/integration/weekly.test.ts`](tests/integration/weekly.test.ts)).
+
+---
+
+## Where the approval gate sits
+
+Nothing is written or sent unless a person approves that specific action.
+
+| Loop | Gate | Guarantees |
 |---|---|---|
-| `riya@acme.test` | Employee (reports to Priya) | `demo1234` |
-| `arjun@acme.test` | Employee (reports to Priya) | `demo1234` |
-| `manager@acme.test` | Manager — Priya Sharma | `demo1234` |
-| `admin@acme.test` | Admin / finance — Kavita Rao | `demo1234` |
+| Response | The preview card → `POST /assistant/confirm` ([`src/assistant/actions.ts`](src/assistant/actions.ts)) | The interpreter never writes. A preview carries an HMAC-signed token that holds **exactly the previewed action**, is tied to the user, expires after 15 minutes, and can be confirmed **once**. Permission checks run again on confirm. An edited token is rejected. |
+| Weekly | `run_actions` rows on the approval screen ([`src/pulse/approvals.ts`](src/pulse/approvals.ts)) | Each action shows **what** will be written and **where** (Weekly Log, email draft *"never sent"*, canonical answer). It can be approved, edited or rejected **on its own**; approving one never triggers another; a decided action cannot be decided again; edits are redacted again. Explainers cannot be edited, so every bullet keeps its citation. |
 
-The seed prints **Riya's MCP connector URL**. To get a stable one for a public demo, set `DEMO_MCP_TOKEN` (e.g. `sw_` followed by 32 random URL-safe characters) before seeding; the URL is then `https://<your-host>/mcp/<DEMO_MCP_TOKEN>`.
+---
 
-> Anyone with a connector URL can act as that user. Only publish the demo token for a demo deployment.
+## The issue that came out of the week
 
-### Connect Claude
+On the demo week (20–26 Nov 2026), **supplier GSTIN** was the top confusion. It drew 7 questions in different phrasings (*"Do I need the GSTIN on a hotel bill?"*, *"hotel ne GSTIN nahi diya, kya chalega?"*), and 3 claim lines that week were flagged `MISSING_GSTIN`. People were asking about the rule *and* breaking it, so the explainer covers both: the company's ₹2,000 threshold, and what CBIC says a tax invoice must show about the supplier. Hotel and meal limits came next.
 
-1. Sign in to Spendwise → **Settings → Connect Claude** → **Generate connector URL** and copy it (or use the demo URL above).
-2. In Claude, open **Settings → Connectors → Add custom connector**, name it *Spendwise*, paste the URL, save.
-3. In a new chat, attach receipt photos and say: *"Log these receipts for my Bangalore trip, 3–5 Nov."*
-4. Claude calls `get_policy`, then `create_claim`, and replies with the totals, any flags, and a link to the draft claim.
-5. Open the link to attach the receipt images, fix anything, and submit (or tell Claude "submit it").
+- Pulse and explainer as appended: [`evals/samples/weekly-log-entry.md`](evals/samples/weekly-log-entry.md)
+- Email draft: [`evals/samples/email-draft.md`](evals/samples/email-draft.md)
+- Inputs behind it: [`evals/samples/weekly-inputs.csv`](evals/samples/weekly-inputs.csv)
+- Five sample questions with their drafts: [`evals/samples/questions-and-drafts.md`](evals/samples/questions-and-drafts.md)
+
+The demo week is synthetic (made by `npm run seed`). The questions contain no personal data, and the flags come from the real policy checks on a seeded claim.
+
+---
+
+## Sources
+
+Public, official sources only. No blogs and no app screenshots. Every passage, with its id, is visible on the **Sources** page (`/sources`).
+
+| Source | URL | Last checked | Used for |
+|---|---|---|---|
+| Company expense policy | `/settings/policy` (live from the database) | the day of the answer | Limits per category, receipt and GSTIN thresholds, weekend rule, how flags work, policy notes |
+| CBIC: CGST Invoice Rules, Tax invoice | https://cbic-gst.gov.in/gst-invoice-rules.html | 2026-11-26 | Supplier and recipient details, HSN/SAC, value and tax, place of supply, signature |
+
+**Deliberately not included**, because they could not be verified on an official page on 2026-11-26: CGST Act section 17(5) on blocked input tax credit (CBIC's Act page returns 404), and the structure of a GSTIN. Questions on these come back as *"not covered"*, with the sources searched named.
+
+---
+
+## Scope enforcement (in code, not only in prompts)
+
+- **Facts only.** [`guard.ts`](src/assistant/guard.ts) refuses investment, tax-planning, buy/sell and returns requests *before* the model runs, in the web assistant and over MCP. `violatesScope()` also checks model output: recommendations or return figures turn an answer into *"not covered"*.
+- **Citations.** An answer is shown only if every passage it cites was actually retrieved.
+- **Length caps.** Replies ≤3 sentences, pulse ≤250 words, explainer ≤6 bullets, all enforced after generation.
+- **No PII.** [`redact.ts`](src/ai/redact.ts) replaces PAN, Aadhaar, card (Luhn-checked), phone, bank account, email, UPI ids and connector tokens with `[PAN]`, `[PHONE]` and so on: before text reaches the model, on the model's reply, before anything is stored (`assistant_events`, `run_actions`, outputs), and in every error log ([`log.ts`](src/log.ts)). GSTINs are kept on purpose: they are public business tax ids that claims need. Email recipients are stored as roles ("Finance team"), never as addresses.
+
+---
+
+## Evaluations
+
+```bash
+createdb spendwise_eval
+EVAL_DATABASE_URL=postgresql://localhost/spendwise_eval npm run eval
+```
+
+This runs over the assembled system (database, both loops, the HTTP server and an MCP client), writes [`evals/RESULTS.md`](evals/RESULTS.md), [`evals/results/latest.json`](evals/results/latest.json) and [`evals/samples/`](evals/samples), and exits 1 if a required check fails. It also runs in CI. With `ANTHROPIC_API_KEY` set, the model-dependent checks run against Claude too.
+
+| Check | What it does | Result |
+|---|---|---|
+| **1. Feasibility** | 12 queued questions → each gets a cited draft or an explicit "not covered" (≤3 sentences); the loop runs from the scheduler path with no human step; themes ≤5, each with ids and a window; pulse ≤250 words; explainer ≤6 bullets with sources | 6/6 |
+| **2. Correctness of edits** | Diffs database state before and after: an edit changes only that draft; approving one action writes only that action; rejecting touches nothing else; confirming one reply draft writes one line; no double approval or replay | 6/6 |
+| **3. Grounding and compliance** | 15 claims sampled from both loops trace to a source passage (every ₹ amount must appear in it) or to existing ids; uncovered questions say so (web + MCP); 16 advice and return-figure requests × 2 repeats × 2 channels are refused and never reach the pulse; PAN / account / phone in 6 phrasings × 2 repeats × 2 channels plus a pulse edit and an error path, then every table and every captured log line is searched for the raw values | 7/7 |
+| Model-dependent | Intent accuracy on 21 spoken and Hinglish utterances; whether Claude's answers cite the expected passage | run with a key |
+
+**Iteration** (same labelled data, earlier versions kept in [`evals/legacy/`](evals/legacy)):
+
+| Component | v1 | v2 | v3 (current) |
+|---|---|---|---|
+| Retrieval top-1 on 28 covered questions | 68% (plain IDF) | **100%** (heading boost ×2, synonyms ×0.5, length normalisation) | — |
+| Advice guard: requests caught (of 16) | 13 | 14 (adds any investment-product mention) | **16** (adds "park / grow money", "good returns") |
+| Advice guard: ordinary messages wrongly refused (of 15) | 0 | 1 (*"printer paper **stock**"*) | **0** |
+
+Each version change came from a failure the system showed on real input. A real run sent hotel and GSTIN questions to catch-all passages (→ retrieval v2). The demo data contained *"Should I put my reimbursement into a mutual fund?"* and the guard missed it (→ v2). The eval then found two more misses and a false refusal (→ v3). The routing questions overlap the ones used for tuning, so 100% overstates what retrieval will do on new phrasings.
+
+Unit and integration tests: `TEST_DATABASE_URL=postgresql://localhost/spendwise_test npm test` (257 tests).
+
+---
+
+## Interface
+
+| Page | Who | What |
+|---|---|---|
+| `/assistant` | everyone | Mic and text box, replies read aloud, follow-up chips, preview cards with flags, cited answers with source and last-checked date, *Approved answer* badge |
+| `/pulse` | admins | Stats, themes with counts, quotes and traceable ids, pulse and explainer drafts, **approval screen** |
+| `/pulse/log` | admins | Weekly Log entries and email drafts written so far |
+| `/pulse/canonical` | admins | Canonical answers the assistant reuses (times reused, sources, retire) |
+| `/sources` | everyone | Every source and passage with its last-checked date |
+| `/claims`, `/approvals`, `/reports`, `/settings/*` | as in v1 | Claims, approvals queue, reports and CSV export, policy, team, Claude connector |
+
+### MCP tools (for the employee's own Claude)
+
+`get_policy`, `create_claim`, `add_expenses`, `update_expense`, `submit_claim`, `list_my_claims`, `get_claim`, `list_pending_approvals`, `decide_claim`, `get_spend_report` (all from v1), plus **`ask_policy`**: the same cited answers, the same guard and the same redaction as the web assistant. Each tool authenticates with a per-user token in the URL (stored hashed, revocable) and runs with that user's permissions.
 
 ---
 
 ## Run locally
 
-Requirements: Node 22+, Postgres 14+.
+Requires Node 22+ and Postgres 14+.
 
 ```bash
-cp .env.example .env               # set DATABASE_URL and SESSION_SECRET
 npm install
-npm run migrate                    # apply migrations
-npm run seed                       # demo org (npm run seed -- --reset to recreate)
-npm run dev                        # http://localhost:3000
+cp .env.example .env.local     # set DATABASE_URL, SESSION_SECRET, ANTHROPIC_API_KEY
+npm run migrate
+npm run seed                   # demo org, a week of questions, a flagged draft claim (-- --reset to recreate)
+npm run dev                    # http://localhost:3000
 ```
-
-Receipts are stored in the database by default (table `receipt_files`), so one Postgres is all you need, locally and deployed.
-
-Environment files: `.env.local` is loaded first, then `.env` (both git-ignored; real environment variables win). `neon deploy`, or pasting your Neon URLs, goes in `.env.local`. Tests never read these files except for `TEST_DATABASE_URL`, and refuse to run if it points at the same database as `DATABASE_URL`.
-
-### Using Neon
-
-Put Neon's pooled connection string in `DATABASE_URL` and the direct one (host without `-pooler`) in `DATABASE_URL_UNPOOLED`, then `npm run migrate`. On Render, replace the `fromDatabase` entry for `DATABASE_URL` in `render.yaml` with your Neon URL (and drop the `databases:` block).
-
-### Scripts
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Dev server with reload (tsx) |
-| `npm run build` / `npm start` | Compile to `dist/`; start applies migrations, then serves |
-| `npm run migrate` | Apply migrations (`migrate:generate` makes a new one after editing `src/db/schema.ts`) |
-| `npm run seed` | Create the demo org (`-- --reset` to recreate) |
-| `npm test` | Unit tests; integration tests too when `TEST_DATABASE_URL` is set |
-| `npm run typecheck` / `npm run lint` | Types (src + tests) / ESLint |
+| `npm run dev` / `npm run build` / `npm start` | Dev server / compile / migrate then serve |
+| `npm run pulse` | Run the weekly loop once for every organisation |
+| `npm run eval` | Evals (needs `EVAL_DATABASE_URL`) |
+| `npm test` | Unit tests; integration tests too with `TEST_DATABASE_URL` |
+| `npm run typecheck` / `npm run lint` | Types / ESLint (src, tests, evals) |
 
-### Environment
-
-| Variable | Required | Notes |
-|---|---|---|
-| `DATABASE_URL` | yes | Postgres connection string (on Neon: the pooled `-pooler` URL) |
-| `DATABASE_URL_UNPOOLED` | no | Direct connection for migrations (on Neon: same URL without `-pooler`) |
-| `SESSION_SECRET` | yes | Long random string (`openssl rand -hex 32`); also signs invite links |
-| `APP_URL` | no | Public URL, no trailing slash. Defaults to `RENDER_EXTERNAL_URL` on Render, else `http://localhost:$PORT` |
-| `RECEIPT_STORAGE` | no | `database` (default) or `disk` |
-| `UPLOADS_DIR` | no | Receipt directory when `RECEIPT_STORAGE=disk` (default `./uploads`) |
-| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION` | no | Optional: a private S3-compatible bucket (e.g. Cloudflare R2); overrides `RECEIPT_STORAGE` when set |
-| `SEED_DEMO` | no | `true` seeds the demo org on boot if it doesn't exist |
-| `DEMO_MCP_TOKEN` | no | Fixed demo connector token for Riya |
-| `PORT` | no | Default 3000 |
-
----
-
-## How it works
-
-```
-Claude ──MCP (POST /mcp/<token>)──┐
-                                  ├─► src/domain/*  ──► Postgres (Drizzle)
-Browser ──HTML forms / sessions───┘        │
-                                           └─► receipts: Postgres (default), disk or private R2
-```
-
-- **One domain layer.** All business rules and permission checks live in `src/domain/`. The web routes (`src/web/routes/`) and the MCP tools (`src/mcp/tools/`) are thin wrappers, so Claude and people always get the same behaviour.
-- **Money** is stored as integer paise; tools accept and return rupees.
-- **Rule checks** add flags but never block a claim: `OVER_ITEM_LIMIT`, `OVER_DAY_LIMIT`, `MISSING_RECEIPT` (on submit), `MISSING_GSTIN`, `INVALID_GSTIN` (format + checksum), `GST_MISMATCH`, `WEEKEND`, `OUTSIDE_TRIP`, `POSSIBLE_DUPLICATE`.
-- **Audit log.** Every change records who did it, before/after, and whether it came from `web` or `mcp`.
-- **Receipts** are stored in Postgres by default and served only through `GET /receipts/<file>` after checking the viewer can see the claim (an optional R2 bucket can stay private for the same reason).
-
-### MCP tools
-
-Streamable HTTP, stateless, JSON responses. Authenticated by the per-user token in the URL (stored as a SHA-256 hash; revocable). Every tool runs as that user with the same permissions as the web app. Validation errors say exactly how to fix the call (e.g. *"Unknown category 'Food'. Valid categories: Meals (MEALS), Travel (TRAVEL), …"*).
-
-| Tool | Who | Purpose |
-|---|---|---|
-| `get_policy` | all | Categories, limits, thresholds, notes, caller's role and manager |
-| `create_claim` | all | New draft (or `submit: true`) from extracted receipt lines |
-| `add_expenses` | owner, draft | Add lines |
-| `update_expense` | owner (draft) / approver (submitted) | Change any field; flags re-checked |
-| `submit_claim` | owner | Send to the manager |
-| `list_my_claims` | all | Own claims, filter by status/date |
-| `get_claim` | owner, their manager, admin | Lines, flags, comments, history |
-| `list_pending_approvals` | manager, admin | Submitted claims waiting on you |
-| `decide_claim` | manager (direct reports), admin | Approve/reject per line, or approve all |
-| `get_spend_report` | manager (team), admin (org) | Totals by person / category / month |
-
-### Web app
-
-| Page | Who |
+| Variable | Notes |
 |---|---|
-| `/claims`, `/claims/:id` | Everyone: list, edit lines, live totals, drag-and-drop receipts, comments, history, submit |
-| `/approvals` | Managers & admins: queue (oldest first); admins also bulk **mark as paid** |
-| `/reports` | Managers (team) & admins (org): by person / category / month; admins **Export CSV** |
-| `/settings/connect` | Everyone: generate / revoke connector URLs |
-| `/settings/policy` | Everyone reads; admins edit thresholds and categories |
-| `/settings/team` | Admins: roles, managers, invite links |
-
-CSV columns: `claim_id, employee, email, date, merchant, category, category_code, description, amount, currency, taxable, cgst, sgst, igst, gstin, payment_method, status, approver, decided_at, paid_at`. The default export is approved lines on approved / partly approved / paid claims; "All submitted lines" includes pending and rejected ones. Values that look like spreadsheet formulas are neutralised.
+| `DATABASE_URL` | Postgres (on Neon: the pooled `-pooler` URL). `DATABASE_URL_UNPOOLED` is the direct URL, used for migrations |
+| `SESSION_SECRET` | Long random string; also signs invites and assistant confirmation tokens |
+| `ANTHROPIC_API_KEY` | Claude. Without it the assistant says it is unavailable, policy answers use the extractive fallback, and the pulse uses templates |
+| `CLAUDE_MODEL` | Optional; default `claude-opus-5-5` |
+| `PULSE_SCHEDULE` | `weekly` runs the loop on Mondays at 09:00 IST |
+| `APP_URL`, `SEED_DEMO`, `DEMO_MCP_TOKEN`, `RECEIPT_STORAGE`, `S3_*` | As in v1 (see `.env.example`) |
 
 ---
 
-## Tests
+## Deploy
 
-```bash
-npm test                                                        # unit tests only
-createdb spendwise_test
-TEST_DATABASE_URL=postgresql://localhost/spendwise_test npm test  # + integration
-```
+Render (web service) and a **new** Neon database, separate from the v1 Spendwise deployment.
 
-Integration tests only ever use `TEST_DATABASE_URL` (never `DATABASE_URL`). Each test file creates its own organisation, so they run in parallel without clearing data. They cover the claim lifecycle, every MCP tool over real HTTP with the official SDK client, permissions over both MCP and the web (including cross-team, cross-org and revoked tokens), web flows, CSV export and the demo seed.
+1. **Neon:** create a project (region `ap-southeast-1`) and copy the pooled and direct connection strings.
+2. **Render:** New → **Blueprint** → pick `Daminigit/spendwise-desk`. `render.yaml` creates the `spendwise-desk` web service. When prompted, set `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (direct) and `ANTHROPIC_API_KEY`. `SESSION_SECRET` is generated, and `SEED_DEMO=true` and `PULSE_SCHEDULE=weekly` are already set.
+3. The first boot migrates and seeds the demo org, a week of questions and a flagged claim. Open `/login`, sign in as `admin@acme.test`, go to **Pulse** and press **Run weekly loop now**.
+4. Optional: a Render **Cron Job** running `node dist/pulse/cli.js` every Monday, because a free web service sleeps when idle and may miss the in-process schedule.
 
-CI (`.github/workflows/ci.yml`) runs type-check, lint, build, all tests against Postgres 16, a smoke test of the production build (`npm start` with migrate + seed, then the landing page and `tools/list` over MCP), and a Docker build.
+The Dockerfile works on other hosts (it runs as a non-root user, has a health check, and migrates on start).
 
 ---
 
-## Deploy (Render + one Neon database)
+## Known limits
 
-One Neon database serves both your local copy and the deployed app (same connection string), and it also stores the receipt images, so there is no other service to set up.
+- **One public source.** Only CBIC's tax-invoice page could be fetched and verified. Blocked input tax credit (section 17(5)) and the GSTIN structure are not covered, so the assistant says so.
+- **Keyword retrieval, not embeddings.** It is deterministic and explainable over about 25 passages, but it relies on a hand-written synonym map. A new phrasing for an unmapped word can miss, and the system then says "not covered" rather than guessing. The 100% routing score overstates this (see Evaluations).
+- **Voice depends on the browser.** Speech recognition works in Chrome and Edge; Safari falls back to typing. There is no server-side speech-to-text, and audio never leaves the browser.
+- **Advice guard is a pattern list.** It is backed by the model's own `advice_request` intent and the output check, but a determined new phrasing could still get past the code layer.
+- **Model checks pending.** The two model-dependent evals and Claude-written sample drafts need an API key with credit. The committed samples were produced with the extractive fallback.
+- **Demo data is synthetic.** The weekly inputs are seeded, not real user traffic.
+- **The email is a draft.** Nothing is sent; an admin copies it into their mail client.
+- **Free-tier hosting** sleeps when idle (the first request takes about a minute).
 
-1. **Neon.** From the Neon console, copy the **pooled** connection string (host contains `-pooler`) and the **direct** one (same, without `-pooler`).
-2. **Render.** New → **Blueprint** → select this repo. `render.yaml` creates only the web service (Singapore, next to Neon `ap-southeast-1`). When prompted, paste the pooled URL as `DATABASE_URL` and the direct URL as `DATABASE_URL_UNPOOLED`; optionally set `DEMO_MCP_TOKEN` / `APP_URL`.
-3. First boot applies migrations and, with `SEED_DEMO=true`, seeds the demo org if it isn't there yet. The connector URL is printed in the deploy logs (or derive it from `DEMO_MCP_TOKEN`).
+---
 
-Because local and deployed share the database, data you create locally appears on the deployed app and vice versa. Keep integration tests on a separate `TEST_DATABASE_URL` (they refuse to run against the app's database).
+## Rubric map
 
-Free-plan caveats: the Render service sleeps when idle (the first request takes ~1 min), and Neon's free tier suspends the database when idle (a second or two on wake). Receipts are capped at 10 MB each.
-
-A `Dockerfile` is included for other hosts. It runs as a non-root user, has a health check, and migrates on start.
-
-### Post-deploy checklist
-
-- [ ] Landing page loads over HTTPS
-- [ ] Log in as `admin@acme.test` / `demo1234`
-- [ ] Add Riya's connector URL to Claude → *"What's our expense policy?"* → `get_policy` answers
-- [ ] Send 3 receipt photos with "log these" → a 3-line draft appears under Riya's claims, flags shown in Claude and on the page
-- [ ] As Riya: attach a receipt image, edit a line, submit
-- [ ] As Priya: recategorise a line, reject one with a note, approve the rest → **Partly approved**
-- [ ] Claim history shows each change with *via Claude* / *via web*
-- [ ] As admin: Reports by month, **Export CSV** opens correctly in Excel
-- [ ] GitHub Actions: all CI jobs green
+| Rubric | Where to look |
+|---|---|
+| Voice UX & intent handling (25%) | `/assistant`: mic, Hinglish, follow-up questions, chips, preview cards, read-aloud; `interpret.ts`; intent eval |
+| MCP usage & system design (20%) | 11 MCP tools incl. `ask_policy`; the architecture above; the model-vs-code split; two approval gates |
+| Grounding & RAG quality (15%) | Corpus, retrieval, citation checks, "not covered" with what was searched, `/sources`, canonical reuse |
+| AI evals & iteration depth (20%) | `npm run eval`, `evals/RESULTS.md`, v1 → v2 → v3 tables |
+| Workflow automation (10%) | Weekly loop on schedule / cron / button, approval actions, Weekly Log and email draft |
+| Deployment & code quality (10%) | Render blueprint, Dockerfile, CI (typecheck, lint, 257 tests, evals, smoke test, Docker build) |

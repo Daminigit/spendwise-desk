@@ -14,7 +14,7 @@ Asked 5+ times this week: Supplier GSTIN (7).
 
 What people said: "Do I need the GSTIN on a hotel bill?" "What is the hotel limit per night?" "What is the daily meals limit?"
 
-19 policy questions and 4 flagged lines this week. The biggest theme was supplier gstin.
+19 policy questions and 4 flagged lines this week. The biggest theme was "Supplier GSTIN".
 
 Action ideas:
 1. Publish the "Supplier GSTIN" explainer so the assistant answers it the same way every time.

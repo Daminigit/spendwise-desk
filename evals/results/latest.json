@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-26T14:02:08.892Z",
+  "ranAt": "2026-11-26T14:13:56.665Z",
   "model": null,
   "summary": {
     "required": 19,
@@ -172,7 +172,7 @@
       "group": "feasibility",
       "name": "Weekly loop completes without manual intervention once triggered",
       "pass": true,
-      "detail": "run 1038cd5d (2026-11-20 to 2026-11-26), trigger=schedule",
+      "detail": "run a0e8598f (2026-11-20 to 2026-11-26), trigger=schedule",
       "required": true
     },
     {

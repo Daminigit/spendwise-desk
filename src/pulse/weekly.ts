@@ -365,7 +365,7 @@ export async function composePulse(orgName: string, g: Gathered): Promise<Pulse>
 
   if (!summary) {
     summary = g.themes.length
-      ? `${g.stats.questions} policy question${g.stats.questions === 1 ? '' : 's'} and ${g.stats.flaggedLines} flagged line${g.stats.flaggedLines === 1 ? '' : 's'} this week. The biggest theme was ${top[0].label.toLowerCase()}.`
+      ? `${g.stats.questions} policy question${g.stats.questions === 1 ? '' : 's'} and ${g.stats.flaggedLines} flagged line${g.stats.flaggedLines === 1 ? '' : 's'} this week. The biggest theme was "${top[0].label}".`
       : 'No policy questions or flagged lines this week.';
   }
   if (actions.length < 3) actions = [...actions, ...fallbackActions(top)].slice(0, 3);
